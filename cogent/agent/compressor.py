@@ -82,8 +82,27 @@ class ContextCompressor:
         )
         return compressed
 
+    DECISIVE_TERMS = {
+        "fail", "failed", "failure", "fails",
+        "pass", "passed", "passes",
+        "abort", "aborted", "aborts",
+        "verdict", "approved", "reject", "rejected",
+        "safe", "unsafe", "denied", "halt", "halted",
+        "yes", "no", "cancelled", "canceled", "prohibited", "banned",
+        "contraindicated", "refused", "terminated", "critical"
+    }
+
+    NEGATION_TERMS = {
+        "not", "no", "never", "neither", "nor", "none",
+        "without", "excluding", "except", "cannot", "non",
+        "does not", "did not", "will not", "is not", "was not"
+    }
+
     def _compress_text(self, query: str, text: str) -> str:
-        """Extracts top scoring sentences matching query terms."""
+        """
+        Extracts top scoring sentences matching query terms while strictly
+        preserving decisive outcomes, safety verdicts, qualifications, and negations.
+        """
         sentences = re.split(r"(?<=[.!?])\s+", text)
         if len(sentences) <= 2:
             return text
@@ -93,13 +112,35 @@ class ContextCompressor:
 
         for idx, s in enumerate(sentences):
             s_clean = s.strip()
-            if len(s_clean) < self.min_sentence_length:
+            if not s_clean:
                 continue
-            s_words = set(re.findall(r"\b[a-zA-Z0-9_\-#]{3,}\b", s_clean.lower()))
+
+            s_words = set(re.findall(r"\b[a-zA-Z0-9_\-#]{2,}\b", s_clean.lower()))
+            s_lower = s_clean.lower()
+
+            # Check for decisive statements, outcomes, or critical verdicts
+            has_decisive = bool(s_words & self.DECISIVE_TERMS) or any(
+                re.search(rf"\b{term}\b", s_lower) for term in ["verdict: no", "verdict: yes", "not safe"]
+            )
+            has_negation = bool(s_words & {"not", "never", "no", "none", "without", "except"}) or any(
+                phrase in s_lower for phrase in ["does not", "did not", "is not", "was not", "will not"]
+            )
+            has_numbers = bool(re.search(r"(\$|€|£)?\b\d+([.,]\d+)?\b%?", s_clean))
+
+            # Only drop sentences below minimum length if they lack decisive content, negations, or numbers
+            if len(s_clean) < self.min_sentence_length:
+                if not (has_decisive or has_negation or has_numbers):
+                    continue
+
             overlap = len(q_terms & s_words)
             # Give slight preference to opening sentence for context
             pos_bonus = 0.5 if idx == 0 else 0.0
-            score = overlap + pos_bonus
+
+            # Decisive and negation bonuses ensure critical polarity is never silently dropped
+            decisive_bonus = 2.5 if has_decisive else 0.0
+            negation_bonus = 1.5 if (has_negation and (overlap > 0 or has_numbers)) else 0.0
+
+            score = overlap + pos_bonus + decisive_bonus + negation_bonus
             scored_sentences.append((score, idx, s_clean))
 
         if not scored_sentences:

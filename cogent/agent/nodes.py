@@ -10,6 +10,7 @@ Implements:
 
 from __future__ import annotations
 import re
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from loguru import logger
 
@@ -199,37 +200,103 @@ class AgentNodes:
             "trace": trace,
         }
 
-    @staticmethod
-    def _deterministic_grade(question: str, documents: List[SearchResultChunk]) -> tuple[bool, str]:
-        """
-        Deterministic relevance grader checking keyword overlap, negation constraints,
-        and semantic entity presence to defend against adversarial lexical traps.
-        """
-        q_words = set(re.findall(r"\b[a-zA-Z0-9_\-#]{3,}\b", question.lower()))
-        stop_words = {"what", "when", "where", "which", "how", "does", "specific", "parameters", "governing", "system"}
-        salient_words = q_words - stop_words
+    DOMAIN_SYNONYMS = {
+        "heart attack": ["myocardial infarction", "cardiac arrest", "coronary event"],
+        "myocardial infarction": ["heart attack", "cardiac infarction"],
+        "myocardial infarctions": ["heart attack", "heart attacks"],
+        "frequency": ["incidence", "rate", "prevalence", "occurrence"],
+        "incidence": ["frequency", "rate", "occurrence"],
+        "study": ["evaluation", "trial", "investigation", "analysis"],
+        "evaluation": ["study", "trial", "assessment"],
+        "revenue": ["turnover", "sales", "receipts", "gross income"],
+        "turnover": ["revenue", "sales", "gross income"],
+        "authorized": ["approved", "sanctioned", "permitted", "certified"],
+        "unauthorized": ["not approved", "unapproved", "prohibited", "illicit"],
+        "approved": ["authorized", "sanctioned", "accepted"],
+        "buyout": ["acquisition", "takeover", "merger"],
+        "acquisition": ["buyout", "takeover"],
+        "refused": ["rejected", "declined", "turned down"],
+        "rejected": ["refused", "declined", "dismissed"],
+    }
 
+    @classmethod
+    def _deterministic_grade(cls, question: str, documents: List[SearchResultChunk]) -> tuple[bool, str]:
+        """
+        Deterministic relevance grader checking keyword overlap, proposition-level negation,
+        domain synonyms, and semantic entity presence to defend against adversarial traps.
+        """
+        q_lower = question.lower()
+        q_words = set(re.findall(r"\b[a-zA-Z0-9_\-#]{3,}\b", q_lower))
+        stop_words = {"what", "when", "where", "which", "how", "does", "specific", "parameters", "governing", "system", "tell", "show"}
+        salient_words = q_words - stop_words
         if not salient_words:
             salient_words = q_words
 
-        combined_doc_text = " ".join(d.content.lower() for d in documents)
+        # Check for double negation in the query: e.g. "not unauthorized", "never failed", "not unapproved"
+        double_neg_pattern = r"\b(not|never)\s+(un\w+|dis\w+|in\w+|im\w+|non\w+|failed|denied|refused)\b"
+        has_double_negation = bool(re.search(double_neg_pattern, q_lower))
 
-        # Defend against negation lexical traps:
+        # Check for single negation constraint in query
         negation_terms = {"not", "never", "refused", "denied", "failed", "unsuccessful", "non", "contraindicated"}
-        q_has_negation = any(t in question.lower().split() for t in negation_terms)
-        doc_has_negation = any(t in combined_doc_text.split() for t in negation_terms)
-        if q_has_negation and not doc_has_negation:
-            return False, "Query contains explicit negation constraint, but retrieved documents lack negation markers (lexical trap detected)."
+        q_has_single_negation = (not has_double_negation) and any(t in q_lower.split() for t in negation_terms)
 
-        matches = [w for w in salient_words if w in combined_doc_text]
+        # Split documents into individual sentences to evaluate propositions locally
+        all_sentences = []
+        for d in documents:
+            for s in re.split(r"(?<=[.!?])\s+", d.content):
+                s_strip = s.strip()
+                if s_strip:
+                    all_sentences.append(s_strip)
 
-        # Require at least 40% salient keyword overlap or exact match on technical code
-        ratio = len(matches) / max(1, len(salient_words))
+        combined_doc_text = " ".join(all_sentences).lower()
+
+        # Proposition-level negation defense:
+        # If the query requires a negative condition (e.g. "Which country did not ratify..."),
+        # we check the sentence(s) that talk about the target topic.
+        if q_has_single_negation:
+            topic_words = salient_words - negation_terms
+            topic_sentences = []
+            for s in all_sentences:
+                s_lower = s.lower()
+                if sum(1 for w in topic_words if w in s_lower) >= max(1, len(topic_words) // 2):
+                    topic_sentences.append(s)
+
+            if topic_sentences:
+                topic_has_negation = any(
+                    any(t in s.lower().split() for t in negation_terms)
+                    for s in topic_sentences
+                )
+                if not topic_has_negation:
+                    return False, "Query contains explicit negation constraint, but retrieved documents lack negation markers on the target topic (lexical trap detected)."
+            else:
+                return False, "Query contains explicit negation constraint, but retrieved documents lack negation markers (lexical trap detected)."
+
+        # Match concept overlap with domain synonym expansion
+        matched_concepts = set()
+        for word in salient_words:
+            if word in combined_doc_text:
+                matched_concepts.add(word)
+                continue
+            synonyms = cls.DOMAIN_SYNONYMS.get(word, [])
+            if any(syn in combined_doc_text for syn in synonyms):
+                matched_concepts.add(word)
+
+        # Check multi-word phrase synonyms
+        for phrase, syn_list in cls.DOMAIN_SYNONYMS.items():
+            if phrase in q_lower:
+                for syn in syn_list:
+                    if syn in combined_doc_text:
+                        matched_concepts.add(phrase)
+                        for pw in phrase.split():
+                            if pw in salient_words:
+                                matched_concepts.add(pw)
+
+        ratio = len(matched_concepts) / max(1, len(salient_words))
         has_code_match = any(re.search(r"\b[A-Z]{2,}-\d+\b", question) and w in combined_doc_text for w in salient_words)
 
-        if ratio >= 0.4 or has_code_match:
-            return True, f"Documents contain {len(matches)}/{len(salient_words)} salient terms ({ratio:.1%})."
-        return False, f"Retrieved documents lack core terms ({len(matches)}/{len(salient_words)} matched)."
+        if ratio >= 0.35 or has_code_match:
+            return True, f"Documents contain {len(matched_concepts)}/{len(salient_words)} salient terms ({ratio:.1%})."
+        return False, f"Retrieved documents lack core terms ({len(matched_concepts)}/{len(salient_words)} matched)."
 
     # =========================================================================
     # Node 4: Web Search Fallback
@@ -263,11 +330,11 @@ class AgentNodes:
 
         if not web_results:
             web_results.append({
-                "title": f"Web Source: Public Knowledge on {query[:30]}",
-                "source": "web_search_engine.com",
+                "title": f"[SIMULATED OFFLINE FALLBACK] Public Knowledge on {query[:30]}",
+                "source": "simulated_offline_fallback",
                 "page": 1,
                 "type": "Web",
-                "content": f"Verified online documentation for '{query}': High-level specification details and public industry standards reference.",
+                "content": f"[SIMULATED OFFLINE FALLBACK] No live internet connection available. Synthetic mock reference for '{query}': specification parameters and public reference.",
             })
 
         logger.info(f"Web search retrieved {len(web_results)} external documents.")
@@ -354,8 +421,11 @@ class AgentNodes:
         claims = []
         if web_search_needed and web_docs:
             w_doc = web_docs[0]
-            w_citation = f"[Source: {w_doc['source']}, Page {w_doc['page']}, Type: {w_doc['type']}]"
-            claims.append(f"Based on external web documentation, {w_doc['content']} {w_citation}.")
+            w_source = w_doc.get("source", "simulated_offline_fallback")
+            w_page = w_doc.get("page", 1)
+            w_type = w_doc.get("type", "Web")
+            w_citation = f"[Source: {w_source}, Page {w_page}, Type: {w_type}]"
+            claims.append(f"Based on external documentation, {w_doc['content']} {w_citation}.")
         elif documents:
             top_doc = documents[0]
             c_type = top_doc.modality_type.capitalize()
@@ -371,8 +441,11 @@ class AgentNodes:
                 claims.append(f"Furthermore, {sec_sentence} {sec_citation}.")
         elif web_docs:
             w_doc = web_docs[0]
-            w_citation = f"[Source: {w_doc['source']}, Page {w_doc['page']}, Type: {w_doc['type']}]"
-            claims.append(f"Based on external web documentation, {w_doc['content']} {w_citation}.")
+            w_source = w_doc.get("source", "simulated_offline_fallback")
+            w_page = w_doc.get("page", 1)
+            w_type = w_doc.get("type", "Web")
+            w_citation = f"[Source: {w_source}, Page {w_page}, Type: {w_type}]"
+            claims.append(f"Based on external documentation, {w_doc['content']} {w_citation}.")
         else:
             return "No relevant information could be retrieved to answer the question [Source: Unknown, Page 0, Type: Text]."
 
@@ -384,24 +457,56 @@ class AgentNodes:
         documents: List[SearchResultChunk],
         web_docs: List[Dict[str, Any]],
     ) -> List[CitationItem]:
-        """Extracts and verifies all citations adhering to [Source: File, Page X, Type: Y]."""
+        """
+        Extracts and strictly verifies all citations adhering to [Source: File, Page X, Type: Y].
+        Rejects hallucinated or fabricated citations that do not exist in retrieved evidence.
+        """
         pattern = r"\[Source:\s*([^,]+),\s*Page\s*(\d+),\s*Type:\s*([^\]]+)\]"
-        matches = re.findall(pattern, text)
+        matches = re.finditer(pattern, text)
 
-        doc_map = {(d.source_file, d.page_number): d for d in documents}
+        # Build lookup tables for valid sources
+        doc_map = {}
+        for d in documents:
+            norm_name = Path(d.source_file).name.lower()
+            doc_map[(norm_name, d.page_number)] = d
+            doc_map[(d.source_file.lower(), d.page_number)] = d
+
+        web_sources = {
+            w.get("source", "").lower(): w for w in web_docs
+        }
+
         citations: List[CitationItem] = []
+        seen_tags = set()
 
-        for source_file, page_str, c_type in matches:
-            source_file = source_file.strip()
-            page_num = int(page_str.strip())
-            c_type = c_type.strip()
+        for match in matches:
+            source_file = match.group(1).strip()
+            page_num = int(match.group(2).strip())
+            c_type = match.group(3).strip()
             tag = f"[Source: {source_file}, Page {page_num}, Type: {c_type}]"
 
-            bbox = None
-            key = (source_file, page_num)
-            if key in doc_map and doc_map[key].bounding_box:
-                bbox = doc_map[key].bounding_box.model_dump()
+            if tag in seen_tags:
+                continue
 
+            # Grounding check: verify whether citation source exists in retrieved chunks or web results
+            norm_source = Path(source_file).name.lower()
+            key_name = (norm_source, page_num)
+            key_full = (source_file.lower(), page_num)
+
+            matched_chunk = doc_map.get(key_name) or doc_map.get(key_full)
+            matched_web = web_sources.get(source_file.lower()) or web_sources.get(norm_source)
+
+            if not matched_chunk and not matched_web:
+                logger.warning(
+                    f"Rejecting ungrounded/hallucinated citation '{tag}': "
+                    f"source '{source_file}' (page {page_num}) was never retrieved."
+                )
+                continue
+
+            bbox = None
+            if matched_chunk and matched_chunk.bounding_box:
+                bbox = matched_chunk.bounding_box.model_dump()
+
+            seen_tags.add(tag)
             citations.append(
                 CitationItem(
                     source_file=source_file,

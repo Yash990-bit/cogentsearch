@@ -82,15 +82,60 @@ class QdrantVectorStore:
                     json.dump(meta_payload, f, indent=2)
         else:
             # Collection exists: verify embedding space compatibility
-            if meta_file is not None and meta_file.exists():
-                try:
-                    with open(meta_file, "r", encoding="utf-8") as f:
-                        saved_meta = json.load(f)
-                    
+            # 1. Check actual Qdrant collection vector configuration
+            col_info = self._client.get_collection(self.collection_name)
+            actual_dim = getattr(col_info.config.params.vectors, "size", None)
+            if actual_dim is not None and actual_dim != self.embedding_engine.dimension:
+                raise VectorSpaceMismatchError(
+                    f"Vector collection '{self.collection_name}' has underlying vector dimension {actual_dim}, "
+                    f"which does not match current EmbeddingEngine dimension {self.embedding_engine.dimension}. "
+                    "Refusing to initialize incompatible collection."
+                )
+
+            # 2. Check metadata file if in persistent mode
+            if meta_file is not None:
+                if meta_file.exists():
+                    try:
+                        with open(meta_file, "r", encoding="utf-8") as f:
+                            saved_meta = json.load(f)
+                    except json.JSONDecodeError as e:
+                        raise VectorSpaceMismatchError(
+                            f"Corrupted or invalid metadata JSON for collection '{self.collection_name}' at {meta_file}: {e}. "
+                            "Refusing to initialize collection to prevent vector space corruption."
+                        ) from e
+                    except Exception as e:
+                        raise VectorSpaceMismatchError(
+                            f"Failed to read metadata file {meta_file}: {e}."
+                        ) from e
+
+                    # Validate required fields
+                    required_fields = ["provider", "model_name", "dimension"]
+                    for rf in required_fields:
+                        if rf not in saved_meta:
+                            raise VectorSpaceMismatchError(
+                                f"Missing required metadata key '{rf}' in collection metadata at {meta_file}. "
+                                "Refusing to initialize collection to prevent vector space corruption."
+                            )
+
                     saved_provider = saved_meta.get("provider")
                     saved_model = saved_meta.get("model_name")
+                    saved_dim = saved_meta.get("dimension")
+                    saved_col = saved_meta.get("collection_name")
                     curr_provider = self.embedding_engine.provider
                     curr_model = self.embedding_engine.model_name
+                    curr_dim = self.embedding_engine.dimension
+
+                    if saved_col and saved_col != self.collection_name:
+                        raise VectorSpaceMismatchError(
+                            f"Metadata collection name '{saved_col}' does not match requested collection '{self.collection_name}'."
+                        )
+
+                    if saved_dim != curr_dim:
+                        raise VectorSpaceMismatchError(
+                            f"Vector collection '{self.collection_name}' was created with dimension {saved_dim}, "
+                            f"but current runtime is configured with dimension {curr_dim}. "
+                            "Dimension mismatch prevents vector operations."
+                        )
 
                     if saved_provider != curr_provider or saved_model != curr_model:
                         raise VectorSpaceMismatchError(
@@ -98,8 +143,11 @@ class QdrantVectorStore:
                             f"and model '{saved_model}', but current runtime is configured with provider '{curr_provider}' "
                             f"and model '{curr_model}'. Mixing vectors from different embedding spaces produces corrupted similarity rankings."
                         )
-                except (json.JSONDecodeError, KeyError) as e:
-                    logger.warning(f"Could not validate collection metadata file {meta_file}: {e}")
+                else:
+                    logger.warning(
+                        f"Collection '{self.collection_name}' exists in Qdrant but metadata file {meta_file} is absent. "
+                        f"Underlying vector dimension {actual_dim} verified against runtime."
+                    )
 
     def upsert_documents(self, documents: List[IndexedDocument]) -> int:
         """
