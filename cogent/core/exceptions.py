@@ -45,3 +45,14 @@ class OCRUnavailableWarning(UserWarning):
     """Warned when a scanned page is detected but system OCR is unavailable on PATH."""
     pass
 
+
+class VectorSpaceMismatchError(Exception):
+    """Raised when an existing vector collection was created with an incompatible embedding provider or model."""
+    pass
+
+
+class EmbeddingAPIError(Exception):
+    """Raised when an embedding provider API call fails and cannot be recovered without corrupting vector space."""
+    pass
+
+

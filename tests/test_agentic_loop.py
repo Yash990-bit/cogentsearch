@@ -296,3 +296,98 @@ def test_end_to_end_agentic_rag_with_web_search_fallback(test_retriever):
     assert "web_search_fallback" in trace_str
     assert "generator" in trace_str
 
+
+def test_context_compressor_text_table_image():
+    """Verifies that ContextCompressor extracts relevant sentences and table rows while preserving provenance."""
+    from cogent.agent.compressor import ContextCompressor
+
+    compressor = ContextCompressor(max_sentences_per_chunk=2)
+
+    # 1. Text chunk test
+    chunk_text = SearchResultChunk(
+        chunk_id="c_txt",
+        content="General background introduction. The capital expenditure budget is set to $45M for Q3. Weather forecast remains sunny. Operational costs are stable.",
+        modality_type="text",
+        page_number=2,
+        source_file="budget.pdf",
+        score=0.9,
+    )
+    res_text = compressor.compress_chunk("capital expenditure budget Q3", chunk_text)
+    assert "capital expenditure budget" in res_text.compressed_content
+    assert res_text.source_file == "budget.pdf"
+    assert res_text.page_number == 2
+    assert res_text.compression_ratio < 1.0
+
+    # 2. Table chunk test
+    table_content = "| Department | Allocation | Status |\n| --- | --- | --- |\n| Engineering | $20M | Approved |\n| Marketing | $5M | Pending |\n| Legal | $2M | Approved |"
+    chunk_table = SearchResultChunk(
+        chunk_id="c_tbl",
+        content=table_content,
+        modality_type="table",
+        page_number=4,
+        source_file="budget_table.docx",
+        score=0.95,
+    )
+    res_table = compressor.compress_chunk("Engineering allocation", chunk_table)
+    assert "Engineering" in res_table.compressed_content
+    assert "| Department | Allocation | Status |" in res_table.compressed_content
+
+
+def test_doc_grader_negation_lexical_trap_rejection(test_retriever):
+    """Verifies that Document Grader detects and rejects negation lexical traps that fool cross-encoders."""
+    nodes = AgentNodes(hybrid_retriever=test_retriever)
+
+    # Question asking for negation
+    q = "Which country did not ratify the 2024 environmental treaty?"
+
+    # Distractor passage with high verbatim overlap but affirmative statement
+    distractor_chunk = SearchResultChunk(
+        chunk_id="c_trap",
+        content="Canada ratified the 2024 environmental treaty in full compliance with international environmental standards.",
+        modality_type="text",
+        page_number=1,
+        source_file="treaty_status.pdf",
+        score=0.99,
+    )
+
+    state: AgentState = {
+        "question": q,
+        "rewritten_query": "country not ratify 2024 environmental treaty",
+        "documents": [distractor_chunk],
+        "retry_count": 0,
+        "max_retries": 2,
+        "is_relevant": False,
+        "grade_reason": "",
+        "web_search_needed": False,
+        "web_documents": [],
+        "generation": "",
+        "citations": [],
+        "trace": [],
+    }
+
+    result = nodes.doc_grader(state)
+    assert result["is_relevant"] is False
+    assert "lexical trap detected" in result["grade_reason"]
+
+
+def test_vector_space_mismatch_guard(tmp_path):
+    """Verifies that VectorSpaceMismatchError is raised if an existing collection is accessed with mismatched embedding config."""
+    from cogent.core.exceptions import VectorSpaceMismatchError
+    from cogent.vectorstore.embeddings import EmbeddingEngine
+
+    db_dir = tmp_path / "qdrant_isolation_test"
+    db_dir.mkdir(parents=True, exist_ok=True)
+
+    # Initialize collection with mock provider
+    engine1 = EmbeddingEngine(provider="mock", model_name="mock-model", dimension=1536)
+    store1 = QdrantVectorStore(collection_name="col_iso", persist_dir=db_dir, embedding_engine=engine1)
+    del store1
+
+    # Attempt to re-open the same collection with a different provider/model
+    engine2 = EmbeddingEngine(provider="mock", model_name="different-transformer-v2", dimension=1536)
+    with pytest.raises(VectorSpaceMismatchError) as exc_info:
+        QdrantVectorStore(collection_name="col_iso", persist_dir=db_dir, embedding_engine=engine2)
+
+    assert "different embedding spaces" in str(exc_info.value)
+
+

@@ -11,6 +11,7 @@ from typing import List, Optional
 from loguru import logger
 
 from cogent.core.config import settings
+from cogent.core.exceptions import EmbeddingAPIError
 
 
 class EmbeddingEngine:
@@ -22,11 +23,13 @@ class EmbeddingEngine:
         model_name: Optional[str] = None,
         dimension: int = 1536,
         api_key: Optional[str] = None,
+        allow_fallback: bool = False,
     ):
         self.provider = provider or settings.EMBEDDING_PROVIDER
         self.model_name = model_name or settings.OPENAI_EMBEDDING_MODEL
         self.dimension = dimension
         self.api_key = api_key or settings.OPENAI_API_KEY
+        self.allow_fallback = allow_fallback
 
         if self.provider == "openai" and not self.api_key:
             logger.warning(
@@ -50,8 +53,14 @@ class EmbeddingEngine:
                 )
                 return [item.embedding for item in response.data]
             except Exception as e:
-                logger.error(f"OpenAI embedding call failed: {e}. Falling back to offline embeddings.")
-                return [self._offline_embed(t) for t in texts]
+                if self.allow_fallback:
+                    logger.warning(f"OpenAI embedding call failed: {e}. Falling back to offline embeddings (allow_fallback=True).")
+                    return [self._offline_embed(t) for t in texts]
+                logger.error(f"OpenAI embedding call failed: {e}. Raising EmbeddingAPIError to prevent vector space contamination.")
+                raise EmbeddingAPIError(
+                    f"OpenAI embedding inference failed: {e}. "
+                    "Aborting operation to prevent mixing incompatible hash vectors into neural vector space."
+                ) from e
         else:
             return [self._offline_embed(t) for t in texts]
 

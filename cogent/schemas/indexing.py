@@ -51,6 +51,7 @@ class SearchResultChunk(BaseModel):
     bounding_box: Optional[BoundingBox] = None
     source_file: str
     headers_hierarchy: List[str] = Field(default_factory=list)
+    score: Optional[float] = Field(default=None, description="Unified final score (e.g. cross_encoder or RRF score)")
     dense_score: Optional[float] = None
     bm25_score: Optional[float] = None
     rrf_score: Optional[float] = None

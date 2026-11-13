@@ -6,11 +6,14 @@ with cosine distance indexing, metadata payload filtering, and bulk upsert opera
 
 from __future__ import annotations
 import uuid
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from loguru import logger
 
 from cogent.core.config import settings
+from cogent.core.exceptions import VectorSpaceMismatchError
 from cogent.schemas.indexing import IndexedDocument, SearchResultChunk
 from cogent.schemas.document import BoundingBox
 from cogent.vectorstore.embeddings import EmbeddingEngine
@@ -52,6 +55,8 @@ class QdrantVectorStore:
 
         # Check if collection exists
         collections = [c.name for c in self._client.get_collections().collections]
+        meta_file = (self.persist_dir / f"{self.collection_name}_meta.json") if not self.in_memory else None
+
         if self.collection_name not in collections:
             logger.info(
                 f"Creating Qdrant collection '{self.collection_name}' "
@@ -64,6 +69,37 @@ class QdrantVectorStore:
                     distance=Distance.COSINE,
                 ),
             )
+            if meta_file is not None:
+                meta_payload = {
+                    "collection_name": self.collection_name,
+                    "provider": self.embedding_engine.provider,
+                    "model_name": self.embedding_engine.model_name,
+                    "dimension": self.embedding_engine.dimension,
+                    "distance": "Cosine",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                with open(meta_file, "w", encoding="utf-8") as f:
+                    json.dump(meta_payload, f, indent=2)
+        else:
+            # Collection exists: verify embedding space compatibility
+            if meta_file is not None and meta_file.exists():
+                try:
+                    with open(meta_file, "r", encoding="utf-8") as f:
+                        saved_meta = json.load(f)
+                    
+                    saved_provider = saved_meta.get("provider")
+                    saved_model = saved_meta.get("model_name")
+                    curr_provider = self.embedding_engine.provider
+                    curr_model = self.embedding_engine.model_name
+
+                    if saved_provider != curr_provider or saved_model != curr_model:
+                        raise VectorSpaceMismatchError(
+                            f"Vector collection '{self.collection_name}' was created with provider '{saved_provider}' "
+                            f"and model '{saved_model}', but current runtime is configured with provider '{curr_provider}' "
+                            f"and model '{curr_model}'. Mixing vectors from different embedding spaces produces corrupted similarity rankings."
+                        )
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.warning(f"Could not validate collection metadata file {meta_file}: {e}")
 
     def upsert_documents(self, documents: List[IndexedDocument]) -> int:
         """

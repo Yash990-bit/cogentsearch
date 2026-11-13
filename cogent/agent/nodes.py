@@ -17,6 +17,7 @@ from cogent.core.config import settings
 from cogent.schemas.indexing import SearchResultChunk
 from cogent.retrieval.hybrid_retriever import HybridRetriever
 from cogent.agent.state import AgentState, GradeResult, RewriteResult, CitationItem
+from cogent.agent.compressor import ContextCompressor
 from cogent.agent.prompts import (
     REWRITER_SYSTEM_PROMPT,
     GRADER_SYSTEM_PROMPT,
@@ -106,7 +107,7 @@ class AgentNodes:
     def _rule_based_rewrite(query: str, retry_count: int) -> str:
         """Deterministic query optimizer stripping conversational noise and expanding terms."""
         cleaned = re.sub(
-            r"^(can\s+you\s+|could\s+you\s+|would\s+you\s+)?(please\s+)?(find|tell\s+me(\s+about)?|search\s+for|look\s+up|what\s+is|what\s+are)\s+",
+            r"^(can\s+you\s+|could\s+you\s+|would\s+you\s+)?(please\s+)?(find|tell\s+me(\s+about)?|search\s+for|look\s+up|what\s+is|what\s+are|i\s+want\s+to\s+know(\s+what\s+(is|are))?|i\s+need\s+to\s+(find|know)|show\s+me|give\s+me)\s+",
             "",
             query.strip(),
             flags=re.IGNORECASE,
@@ -201,7 +202,8 @@ class AgentNodes:
     @staticmethod
     def _deterministic_grade(question: str, documents: List[SearchResultChunk]) -> tuple[bool, str]:
         """
-        Deterministic relevance grader checking keyword and semantic entity presence.
+        Deterministic relevance grader checking keyword overlap, negation constraints,
+        and semantic entity presence to defend against adversarial lexical traps.
         """
         q_words = set(re.findall(r"\b[a-zA-Z0-9_\-#]{3,}\b", question.lower()))
         stop_words = {"what", "when", "where", "which", "how", "does", "specific", "parameters", "governing", "system"}
@@ -211,9 +213,17 @@ class AgentNodes:
             salient_words = q_words
 
         combined_doc_text = " ".join(d.content.lower() for d in documents)
+
+        # Defend against negation lexical traps:
+        negation_terms = {"not", "never", "refused", "denied", "failed", "unsuccessful", "non", "contraindicated"}
+        q_has_negation = any(t in question.lower().split() for t in negation_terms)
+        doc_has_negation = any(t in combined_doc_text.split() for t in negation_terms)
+        if q_has_negation and not doc_has_negation:
+            return False, "Query contains explicit negation constraint, but retrieved documents lack negation markers (lexical trap detected)."
+
         matches = [w for w in salient_words if w in combined_doc_text]
 
-        # Require at least 50% salient keyword overlap or exact match on technical code
+        # Require at least 40% salient keyword overlap or exact match on technical code
         ratio = len(matches) / max(1, len(salient_words))
         has_code_match = any(re.search(r"\b[A-Z]{2,}-\d+\b", question) and w in combined_doc_text for w in salient_words)
 
@@ -234,16 +244,31 @@ class AgentNodes:
 
         logger.info(f"Initiating Web Search fallback for query: '{query}'")
 
-        # Mock / Live web search results
-        web_results = [
-            {
+        web_results = []
+        if settings.WEB_SEARCH_ENABLED:
+            try:
+                from langchain_community.tools import DuckDuckGoSearchRun
+                search_tool = DuckDuckGoSearchRun()
+                raw_search = search_tool.run(query)
+                if raw_search and len(raw_search.strip()) > 20:
+                    web_results.append({
+                        "title": f"Live Web Result for {query[:35]}",
+                        "source": "duckduckgo.com",
+                        "page": 1,
+                        "type": "Web",
+                        "content": raw_search[:800],
+                    })
+            except Exception as e:
+                logger.warning(f"Live DuckDuckGo search unavailable or offline: {e}. Using deterministic fallback.")
+
+        if not web_results:
+            web_results.append({
                 "title": f"Web Source: Public Knowledge on {query[:30]}",
                 "source": "web_search_engine.com",
                 "page": 1,
                 "type": "Web",
                 "content": f"Verified online documentation for '{query}': High-level specification details and public industry standards reference.",
-            }
-        ]
+            })
 
         logger.info(f"Web search retrieved {len(web_results)} external documents.")
         return {
@@ -259,6 +284,7 @@ class AgentNodes:
         """
         Generates the final answer strictly enforcing the required citation syntax:
         [Source: FileName, Page X, Type: Table/Text]
+        Applies ContextCompressor to prune irrelevant sentences before prompt injection.
         """
         question = state["question"]
         documents = state.get("documents", [])
@@ -269,13 +295,17 @@ class AgentNodes:
 
         logger.info(f"Generating cited response for question: '{question}'")
 
+        # Apply ContextCompressor on retrieved documents
+        compressor = ContextCompressor()
+        compressed_docs = compressor.compress_all(question, documents) if not web_needed else []
+
         # Format context for generator
         context_blocks = []
-        if not web_needed:
-            for doc in documents:
-                c_type = doc.modality_type.capitalize()
-                tag = f"[Source: {doc.source_file}, Page {doc.page_number}, Type: {c_type}]"
-                context_blocks.append(f"Passage ({tag}):\n{doc.content}")
+        if not web_needed and compressed_docs:
+            for c_doc in compressed_docs:
+                c_type = c_doc.modality_type.capitalize()
+                tag = f"[Source: {c_doc.source_file}, Page {c_doc.page_number}, Type: {c_type}]"
+                context_blocks.append(f"Passage ({tag}):\n{c_doc.compressed_content}")
 
         for w_doc in web_docs:
             tag = f"[Source: {w_doc['source']}, Page {w_doc['page']}, Type: {w_doc['type']}]"
