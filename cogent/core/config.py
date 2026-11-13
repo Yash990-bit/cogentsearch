@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     VISION_MAX_TOKENS: int = 1000
     VISION_TEMPERATURE: float = 0.2
 
+    # LLM & Agentic Settings (Phase 3)
+    LLM_MODEL_NAME: str = "gpt-4o-mini"
+    LLM_TEMPERATURE: float = 0.0
+    MAX_REWRITE_RETRIES: int = 2
+    WEB_SEARCH_ENABLED: bool = True
+
     # Embedding & Retrieval Settings
     EMBEDDING_PROVIDER: str = "openai"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
