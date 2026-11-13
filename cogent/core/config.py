@@ -38,6 +38,19 @@ class Settings(BaseSettings):
     VISION_MAX_TOKENS: int = 1000
     VISION_TEMPERATURE: float = 0.2
 
+    # Embedding & Retrieval Settings
+    EMBEDDING_PROVIDER: str = "openai"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_DIMENSION: int = 1536
+
+    # Vector Database Settings
+    VECTOR_DB_TYPE: str = "qdrant"
+    QDRANT_COLLECTION_NAME: str = "cogent_search_documents"
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    RRF_K: int = 60
+    CROSS_ENCODER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
     # Ingestion & Extraction Options
     DPI_SCALE: float = Field(default=2.5, description="Scale factor for high-resolution bounding box crops")
     MIN_IMAGE_WIDTH: int = Field(default=60, description="Minimum pixel width to treat as a meaningful visual element")

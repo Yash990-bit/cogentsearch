@@ -205,13 +205,45 @@ See the full auditable log in [CITATION_AUDIT_REPORT.md](CITATION_AUDIT_REPORT.m
 
 ---
 
+## 🔍 Phase 2: Hybrid Indexing & Retrieval Architecture
+
+CogentSearch combines keyword and dense semantic signals with cross-encoder re-ranking:
+
+```
+                          User Query
+                              │
+               ┌──────────────┴──────────────┐
+               ▼                             ▼
+        Dense Retrieval               Sparse Retrieval
+    (Qdrant Vector Store)               (BM25 Okapi)
+               │                             │
+               └──────────────┬──────────────┘
+                              ▼
+                Reciprocal Rank Fusion (RRF, k=60)
+                              │
+                              ▼ (Top 10 Candidates)
+                   Cross-Encoder Reranker
+             (ms-marco-MiniLM-L-6-v2 / Scorer)
+                              │
+                              ▼ (Top 4 Reranked)
+                 Final Context Output Chunks
+```
+
+### Run Hybrid Search via CLI:
+
+```bash
+python run_hybrid_search.py --query "What is the transaction amount and settlement status for TX-1001?"
+```
+
+---
+
 ## 🗺️ Project Roadmap
 
 - [x] **Phase 1: Advanced Multimodal Ingestion Pipeline** (Docling/PyMuPDF, High-DPI Crop, Vision LLM, Multi-Format Parser, Citation Audit)
-- [ ] **Phase 2: Hybrid Indexing & Persistent Vector Storage** (Dense `text-embedding-3-small`, Sparse `BGE-M3`, Qdrant/ChromaDB)
-- [ ] **Phase 3: Cross-Encoder Reranking & Compression** (MiniLM-L-6-v2, Cohere Rerank, Metadata Filtering)
-- [ ] **Phase 4: Agentic RAG Loop with LangGraph** (Self-Correction, Hallucination Grader, Query Decomposition)
-- [ ] **Phase 5: Automated Evaluation with RAGAS** (Faithfulness, Precision, Recall Benchmarking)
+- [x] **Phase 2: Hybrid Indexing & Storage Strategy** (Pydantic `IndexedDocument` Schema, Semantic Chunking, Qdrant Vector Store, BM25, RRF Top 10, Cross-Encoder Top 4)
+- [ ] **Phase 3: Advanced Reranking Optimization & Context Compression** (Dynamic Context Windows, Metadata Filtering, Token Optimization)
+- [ ] **Phase 4: Agentic RAG Loop with LangGraph** (Self-Correction, Hallucination Grader, Query Decomposition, Adaptive Fallbacks)
+- [ ] **Phase 5: Automated Evaluation with RAGAS** (Faithfulness, Precision, Recall, Multimodal Ground-Truth Benchmarking)
 - [ ] **Phase 6: Interactive Streamlit UI & Visual Citations** (Bounding Box Visualizer & Trace Inspector)
 
 ---
@@ -219,3 +251,4 @@ See the full auditable log in [CITATION_AUDIT_REPORT.md](CITATION_AUDIT_REPORT.m
 ## 📄 License
 
 MIT License. Built for enterprise multimodal document intelligence.
+
