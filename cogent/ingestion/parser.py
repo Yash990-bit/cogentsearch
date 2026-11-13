@@ -1,11 +1,14 @@
 """
 Universal Document Parser Module for CogentSearch.
 Provides specialized parsers for PDF, DOCX (Word), and PPTX (PowerPoint) files,
-preserving layout hierarchy, heading trees, page/slide numbers, and multimodal assets.
+preserving layout hierarchy, heading trees, multi-column reading order, page/slide numbers,
+and adversarial exception handling.
 """
 
 from __future__ import annotations
 import io
+import os
+import zipfile
 import hashlib
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -15,6 +18,12 @@ import fitz  # PyMuPDF
 from PIL import Image
 
 from cogent.core.config import settings
+from cogent.core.exceptions import (
+    EmptyDocumentError,
+    CorruptedDocumentError,
+    PasswordProtectedError,
+    UnsupportedFormatError,
+)
 from cogent.schemas.document import (
     BoundingBox,
     VisualElement,
@@ -62,7 +71,7 @@ class BaseDocumentParser(ABC):
 
 
 class PDFParser(BaseDocumentParser):
-    """High-fidelity PDF parser using PyMuPDF and layout-aware heading detection."""
+    """High-fidelity PDF parser with reading-order sorting, multi-column support, and adversarial defenses."""
 
     def __init__(self, vision_extractor: Optional[VisionExtractor] = None):
         self.vision_extractor = vision_extractor or VisionExtractor()
@@ -72,32 +81,62 @@ class PDFParser(BaseDocumentParser):
         if not path.exists():
             raise FileNotFoundError(f"PDF file not found: {path}")
 
-        file_bytes = path.read_bytes()
-        doc_id = hashlib.sha256(file_bytes[:4096] + str(path.stat().st_size).encode()).hexdigest()[:12]
+        file_size = path.stat().st_size
+        if file_size == 0:
+            raise EmptyDocumentError(f"PDF file '{path.name}' is 0 bytes (empty).", filename=path.name)
 
-        doc = fitz.open(str(path))
+        file_bytes = path.read_bytes()
+
+        # Check for PDF header signature '%PDF'
+        if not file_bytes.startswith(b"%PDF"):
+            raise CorruptedDocumentError(
+                f"File '{path.name}' lacks valid PDF magic bytes.", filename=path.name
+            )
+
+        # Content-based hash ensures duplicate filenames with different contents have unique IDs
+        doc_id = hashlib.sha256(file_bytes[:65536] + str(file_size).encode() + file_bytes[-4096:]).hexdigest()[:12]
+
+        try:
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+        except Exception as e:
+            raise CorruptedDocumentError(
+                f"Failed to open PDF '{path.name}': {e}", filename=path.name, details={"error": str(e)}
+            )
+
+        if doc.is_encrypted or doc.needs_pass:
+            doc.close()
+            raise PasswordProtectedError(
+                f"PDF '{path.name}' is encrypted or password-protected.", filename=path.name
+            )
+
         total_pages = len(doc)
+        if total_pages == 0:
+            doc.close()
+            raise EmptyDocumentError(f"PDF '{path.name}' contains zero pages.", filename=path.name)
+
         page_texts: Dict[int, str] = {}
         page_headers: Dict[int, List[str]] = {}
         all_visual_elements: List[VisualElement] = []
 
-        logger.info(f"Parsing PDF '{path.name}' ({total_pages} pages) with layout & vision extraction...")
+        logger.info(f"Parsing PDF '{path.name}' ({total_pages} pages)...")
 
-        # Determine average body text font size to accurately detect headings
         body_font_size = self._estimate_body_font_size(doc)
-
         current_hierarchy: List[str] = []
+        previous_tables: List[VisualElement] = []
 
         for page_idx in range(total_pages):
             page_num = page_idx + 1
             page = doc[page_idx]
+            page_w = page.rect.width
+            page_h = page.rect.height
 
-            # 1. Structural text and header extraction
+            # Check if multi-column layout is present and sort blocks accordingly
+            sorted_blocks = self._extract_sorted_text_blocks(page, page_w)
+
             page_text_lines: List[str] = []
             page_detected_headers: List[str] = []
 
-            blocks = page.get_text("dict")["blocks"]
-            for block in blocks:
+            for block in sorted_blocks:
                 if block.get("type") == 0:  # Text block
                     for line in block.get("lines", []):
                         spans = line.get("spans", [])
@@ -105,7 +144,6 @@ class PDFParser(BaseDocumentParser):
                         if not line_text:
                             continue
 
-                        # Check if line qualifies as a header (larger font or bold)
                         max_span_size = max((s.get("size", 10.0) for s in spans), default=10.0)
                         is_bold = any("bold" in s.get("font", "").lower() for s in spans)
 
@@ -118,19 +156,33 @@ class PDFParser(BaseDocumentParser):
                             page_text_lines.append(line_text)
 
             combined_page_text = "\n".join(page_text_lines).strip()
+
+            # Scanned page check: images present but no digital text layer
+            is_scanned = len(combined_page_text) == 0 and len(page.get_images()) > 0
+            if is_scanned:
+                logger.warning(
+                    f"Page {page_num} in '{path.name}' appears to be a scanned image with no embedded text layer. "
+                    "Extracting visual assets and transcribing via Vision LLM."
+                )
+
             page_texts[page_num] = combined_page_text
             page_headers[page_num] = list(current_hierarchy)
 
-            # 2. Extract visual elements (tables, charts, images)
+            # 2. Extract visual elements with multi-page table tracking
             page_visuals = self.vision_extractor.extract_from_pdf_page(
                 doc_id=doc_id,
                 page=page,
                 page_number=page_num,
                 page_text_context=combined_page_text,
+                previous_page_tables=previous_tables,
             )
             all_visual_elements.extend(page_visuals)
 
-        metadata = doc.metadata or {}
+            # Update previous tables for multi-page table linking
+            previous_tables = [v for v in page_visuals if v.element_type == VisualElementType.TABLE]
+
+        metadata = dict(doc.metadata) if doc.metadata else {}
+        metadata["rotation_detected"] = any(doc[p].rotation != 0 for p in range(total_pages))
         doc.close()
 
         return RawParsedDocument(
@@ -146,6 +198,33 @@ class PDFParser(BaseDocumentParser):
         )
 
     @staticmethod
+    def _extract_sorted_text_blocks(page: fitz.Page, page_w: float) -> List[Dict[str, Any]]:
+        """Sorts text blocks in visual reading order (left-to-right columns, top-to-bottom)."""
+        raw_blocks = page.get_text("dict")["blocks"]
+        text_blocks = [b for b in raw_blocks if b.get("type") == 0]
+
+        if not text_blocks:
+            return []
+
+        # Check if page is two-column: blocks distributed on left half and right half
+        mid_x = page_w / 2.0
+        left_blocks = [b for b in text_blocks if b["bbox"][2] <= mid_x + 30.0]
+        right_blocks = [b for b in text_blocks if b["bbox"][0] >= mid_x - 30.0]
+
+        # If significant proportion of blocks clearly separate into left/right columns
+        if len(left_blocks) >= 2 and len(right_blocks) >= 2 and (len(left_blocks) + len(right_blocks)) >= len(text_blocks) * 0.7:
+            # Sort left column top-to-bottom, then right column top-to-bottom
+            left_blocks.sort(key=lambda b: b["bbox"][1])
+            right_blocks.sort(key=lambda b: b["bbox"][1])
+            remaining = [b for b in text_blocks if b not in left_blocks and b not in right_blocks]
+            remaining.sort(key=lambda b: b["bbox"][1])
+            return left_blocks + right_blocks + remaining
+        else:
+            # Standard single column or top-to-bottom reading order
+            text_blocks.sort(key=lambda b: b["bbox"][1])
+            return text_blocks
+
+    @staticmethod
     def _estimate_body_font_size(doc: fitz.Document) -> float:
         """Computes modal font size across the document sample to calibrate header thresholds."""
         sizes: List[float] = []
@@ -158,12 +237,11 @@ class PDFParser(BaseDocumentParser):
                             sizes.append(round(span.get("size", 11.0), 1))
         if not sizes:
             return 11.0
-        # Return most frequent font size
         return max(set(sizes), key=sizes.count)
 
 
 class DocxParser(BaseDocumentParser):
-    """Parser for Microsoft Word (.docx) documents."""
+    """Parser for Microsoft Word (.docx) documents with corrupted file defense."""
 
     def __init__(self, vision_client: Optional[VisionLLMClient] = None):
         self.vision_client = vision_client or VisionLLMClient()
@@ -177,10 +255,20 @@ class DocxParser(BaseDocumentParser):
         if not path.exists():
             raise FileNotFoundError(f"DOCX file not found: {path}")
 
-        file_bytes = path.read_bytes()
-        doc_id = hashlib.sha256(file_bytes[:4096] + str(path.stat().st_size).encode()).hexdigest()[:12]
+        file_size = path.stat().st_size
+        if file_size == 0:
+            raise EmptyDocumentError(f"Word document '{path.name}' is 0 bytes (empty).", filename=path.name)
 
-        doc = docx.Document(str(path))
+        file_bytes = path.read_bytes()
+        doc_id = hashlib.sha256(file_bytes[:65536] + str(file_size).encode() + file_bytes[-4096:]).hexdigest()[:12]
+
+        try:
+            doc = docx.Document(io.BytesIO(file_bytes))
+        except (zipfile.BadZipFile, Exception) as e:
+            raise CorruptedDocumentError(
+                f"Failed to open DOCX '{path.name}': {e}", filename=path.name, details={"error": str(e)}
+            )
+
         logger.info(f"Parsing DOCX '{path.name}'...")
 
         page_texts: Dict[int, str] = {1: ""}
@@ -227,6 +315,7 @@ class DocxParser(BaseDocumentParser):
                     md_table_lines.append("| " + " | ".join(r) + " |")
 
                 md_table = "\n".join(md_table_lines)
+                verbatim_text = " | ".join(" ".join(r) for r in table_rows)
                 text_lines.append(f"\n{md_table}\n")
 
                 visual_elements.append(
@@ -234,9 +323,10 @@ class DocxParser(BaseDocumentParser):
                         element_id=elem_id,
                         element_type=VisualElementType.TABLE,
                         page_number=1,
-                        bounding_box=BoundingBox(page_number=1, x0=0, y0=0, x1=100, y1=100),
+                        bounding_box=BoundingBox(page_number=1, x0=10.0, y0=10.0, x1=500.0, y1=200.0, page_width=612.0, page_height=792.0),
                         image_path="",
                         description=f"Extracted Word Document Table: {elem_id}",
+                        extracted_text=verbatim_text,
                         markdown_representation=md_table,
                         confidence=1.0,
                     )
@@ -244,31 +334,34 @@ class DocxParser(BaseDocumentParser):
 
         # 3. Extract embedded media/images
         img_idx = 0
-        for rel_id, rel in doc.part.related_parts.items():
-            if "image" in rel.content_type:
-                img_data = rel.blob
-                elem_id = f"img_{doc_id}_p1_{img_idx}"
-                img_path = self.output_dir / f"{elem_id}.png"
-                img_path.write_bytes(img_data)
+        try:
+            for rel_id, rel in doc.part.related_parts.items():
+                if "image" in rel.content_type:
+                    img_data = rel.blob
+                    elem_id = f"img_{doc_id}_p1_{img_idx}"
+                    img_path = self.output_dir / f"{elem_id}.png"
+                    img_path.write_bytes(img_data)
 
-                llm_res = self.vision_client.analyze_image(
-                    image_path=img_path,
-                    context_hint=text_lines[0] if text_lines else "",
-                    is_table=False,
-                )
-
-                visual_elements.append(
-                    VisualElement(
-                        element_id=elem_id,
-                        element_type=llm_res.get("element_type", VisualElementType.IMAGE),
-                        page_number=1,
-                        bounding_box=BoundingBox(page_number=1, x0=0, y0=0, x1=100, y1=100),
-                        image_path=str(img_path),
-                        description=llm_res["description"],
-                        confidence=0.90,
+                    llm_res = self.vision_client.analyze_image(
+                        image_path=img_path,
+                        context_hint=text_lines[0] if text_lines else "",
+                        is_table=False,
                     )
-                )
-                img_idx += 1
+
+                    visual_elements.append(
+                        VisualElement(
+                            element_id=elem_id,
+                            element_type=llm_res.get("element_type", VisualElementType.IMAGE),
+                            page_number=1,
+                            bounding_box=BoundingBox(page_number=1, x0=10.0, y0=220.0, x1=400.0, y1=450.0, page_width=612.0, page_height=792.0),
+                            image_path=str(img_path),
+                            description=llm_res["description"],
+                            confidence=0.90,
+                        )
+                    )
+                    img_idx += 1
+        except Exception as e:
+            logger.warning(f"Failed extracting media parts from DOCX: {e}")
 
         page_texts[1] = "\n".join(text_lines)
         page_headers[1] = current_headers
@@ -282,12 +375,12 @@ class DocxParser(BaseDocumentParser):
             page_texts=page_texts,
             page_headers=page_headers,
             visual_elements=visual_elements,
-            raw_metadata={"core_properties": str(doc.core_properties)},
+            raw_metadata={},
         )
 
 
 class PptxParser(BaseDocumentParser):
-    """Parser for PowerPoint (.pptx) presentations preserving slide hierarchy and visual assets."""
+    """Parser for PowerPoint (.pptx) presentations with corrupted file defense."""
 
     def __init__(self, vision_client: Optional[VisionLLMClient] = None):
         self.vision_client = vision_client or VisionLLMClient()
@@ -302,11 +395,24 @@ class PptxParser(BaseDocumentParser):
         if not path.exists():
             raise FileNotFoundError(f"PPTX file not found: {path}")
 
-        file_bytes = path.read_bytes()
-        doc_id = hashlib.sha256(file_bytes[:4096] + str(path.stat().st_size).encode()).hexdigest()[:12]
+        file_size = path.stat().st_size
+        if file_size == 0:
+            raise EmptyDocumentError(f"PowerPoint presentation '{path.name}' is 0 bytes (empty).", filename=path.name)
 
-        prs = Presentation(str(path))
+        file_bytes = path.read_bytes()
+        doc_id = hashlib.sha256(file_bytes[:65536] + str(file_size).encode() + file_bytes[-4096:]).hexdigest()[:12]
+
+        try:
+            prs = Presentation(io.BytesIO(file_bytes))
+        except (zipfile.BadZipFile, Exception) as e:
+            raise CorruptedDocumentError(
+                f"Failed to open PPTX '{path.name}': {e}", filename=path.name, details={"error": str(e)}
+            )
+
         total_slides = len(prs.slides)
+        if total_slides == 0:
+            raise EmptyDocumentError(f"Presentation '{path.name}' contains zero slides.", filename=path.name)
+
         logger.info(f"Parsing PPTX '{path.name}' ({total_slides} slides)...")
 
         page_texts: Dict[int, str] = {}
@@ -321,36 +427,35 @@ class PptxParser(BaseDocumentParser):
             slide_lines: List[str] = []
             slide_title = ""
 
-            # Check for slide title
             if slide.shapes.title and slide.shapes.title.text:
                 slide_title = slide.shapes.title.text.strip()
                 slide_lines.append(f"# Slide {slide_num}: {slide_title}\n")
 
             img_idx = 0
             for shape in slide.shapes:
-                # Shape coordinates
-                x0 = shape.left.pt if shape.left else 0.0
-                y0 = shape.top.pt if shape.top else 0.0
-                x1 = x0 + (shape.width.pt if shape.width else 0.0)
-                y1 = y0 + (shape.height.pt if shape.height else 0.0)
+                x0 = max(0.0, shape.left.pt if shape.left else 0.0)
+                y0 = max(0.0, shape.top.pt if shape.top else 0.0)
+                w = max(10.0, shape.width.pt if shape.width else 10.0)
+                h = max(10.0, shape.height.pt if shape.height else 10.0)
+                x1 = min(slide_width, x0 + w)
+                y1 = min(slide_height, y0 + h)
+
                 bbox = BoundingBox(
                     page_number=slide_num,
-                    x0=x0,
-                    y0=y0,
-                    x1=x1,
-                    y1=y1,
+                    x0=round(x0, 2),
+                    y0=round(y0, 2),
+                    x1=round(x1, 2),
+                    y1=round(y1, 2),
                     page_width=slide_width,
                     page_height=slide_height,
                 )
 
-                # Extract Text Frame
                 if shape.has_text_frame and shape != slide.shapes.title:
                     for p in shape.text_frame.paragraphs:
                         p_text = p.text.strip()
                         if p_text:
                             slide_lines.append(f"- {p_text}")
 
-                # Extract Table
                 elif shape.has_table:
                     elem_id = f"table_{doc_id}_s{slide_num}_{img_idx}"
                     table = shape.table
@@ -366,6 +471,7 @@ class PptxParser(BaseDocumentParser):
                             + "| " + " | ".join(divider) + " |\n"
                             + "\n".join("| " + " | ".join(r) + " |" for r in rows_data[1:])
                         )
+                        verbatim_text = " | ".join(" ".join(r) for r in rows_data)
                         slide_lines.append(f"\n{md_table}\n")
 
                         visual_elements.append(
@@ -376,39 +482,42 @@ class PptxParser(BaseDocumentParser):
                                 bounding_box=bbox,
                                 image_path="",
                                 description=f"Presentation Table on Slide {slide_num}: {slide_title}",
+                                extracted_text=verbatim_text,
                                 markdown_representation=md_table,
                                 confidence=1.0,
                             )
                         )
                     img_idx += 1
 
-                # Extract Picture / Image
                 elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                     elem_id = f"img_{doc_id}_s{slide_num}_{img_idx}"
-                    image = shape.image
-                    img_bytes = image.blob
-                    img_path = self.output_dir / f"{elem_id}.{image.ext}"
-                    img_path.write_bytes(img_bytes)
+                    try:
+                        image = shape.image
+                        img_bytes = image.blob
+                        img_path = self.output_dir / f"{elem_id}.{image.ext}"
+                        img_path.write_bytes(img_bytes)
 
-                    llm_res = self.vision_client.analyze_image(
-                        image_path=img_path,
-                        context_hint=f"Slide {slide_num}: {slide_title}",
-                        is_table=False,
-                    )
-
-                    visual_elements.append(
-                        VisualElement(
-                            element_id=elem_id,
-                            element_type=llm_res.get("element_type", VisualElementType.IMAGE),
-                            page_number=slide_num,
-                            bounding_box=bbox,
-                            image_path=str(img_path),
-                            description=llm_res["description"],
-                            markdown_representation=llm_res.get("markdown_table"),
-                            confidence=0.90,
-                            metadata={"keywords": llm_res.get("keywords", [])},
+                        llm_res = self.vision_client.analyze_image(
+                            image_path=img_path,
+                            context_hint=f"Slide {slide_num}: {slide_title}",
+                            is_table=False,
                         )
-                    )
+
+                        visual_elements.append(
+                            VisualElement(
+                                element_id=elem_id,
+                                element_type=llm_res.get("element_type", VisualElementType.IMAGE),
+                                page_number=slide_num,
+                                bounding_box=bbox,
+                                image_path=str(img_path),
+                                description=llm_res["description"],
+                                markdown_representation=llm_res.get("markdown_table"),
+                                confidence=0.90,
+                                metadata={"keywords": llm_res.get("keywords", [])},
+                            )
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed extracting picture shape on slide {slide_num}: {e}")
                     img_idx += 1
 
             page_texts[slide_num] = "\n".join(slide_lines).strip()
@@ -440,5 +549,8 @@ class UniversalParserFactory:
         elif suffix in [".pptx", ".ppt"]:
             return PptxParser()
         else:
-            raise ValueError(f"Unsupported document format: '{suffix}'. Supported: PDF, DOCX, PPTX.")
-
+            raise UnsupportedFormatError(
+                f"Unsupported document format '{suffix}' for file '{Path(file_path).name}'. "
+                f"Supported formats: .pdf, .docx, .pptx",
+                filename=Path(file_path).name,
+            )
