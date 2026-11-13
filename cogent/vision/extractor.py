@@ -135,14 +135,27 @@ class VisionExtractor:
                     page_height=page_h,
                 )
 
-                # Extract markdown directly from table structure if available
+                # Extract markdown directly from table structure
                 raw_md = None
                 try:
-                    df = tab.to_pandas()
-                    if not df.empty:
-                        raw_md = df.to_markdown(index=False)
-                except Exception:
-                    raw_md = None
+                    # Native PyMuPDF table row extraction
+                    raw_rows = tab.extract()
+                    if raw_rows and len(raw_rows) > 0:
+                        cleaned_rows = [
+                            [str(c or "").strip().replace("\n", " ") for c in row]
+                            for row in raw_rows
+                        ]
+                        header = cleaned_rows[0]
+                        divider = ["---"] * len(header)
+                        md_lines = [
+                            "| " + " | ".join(header) + " |",
+                            "| " + " | ".join(divider) + " |",
+                        ]
+                        for r in cleaned_rows[1:]:
+                            md_lines.append("| " + " | ".join(r) + " |")
+                        raw_md = "\n".join(md_lines)
+                except Exception as ex:
+                    logger.debug(f"Direct table extraction failed: {ex}")
 
                 results.append((bbox, raw_md))
         except Exception as e:
@@ -236,3 +249,4 @@ class VisionExtractor:
             and abs(box1.x1 - box2.x1) < tol
             and abs(box1.y1 - box2.y1) < tol
         )
+

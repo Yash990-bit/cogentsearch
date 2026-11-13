@@ -161,3 +161,54 @@ def test_pptx_ingestion(sample_data_dir: Path):
     # Slide titles must be recognized as headers
     header_found = any("CogentSearch Architecture" in h for c in result.chunks for h in c.headers_hierarchy)
     assert header_found
+
+
+def test_complete_multimodal_acceptance_criterion():
+    """
+    Acceptance Criterion:
+    A real document containing text, table, and image must be successfully ingested:
+    - Text blocks & headers accurately mapped
+    - Table detected, cropped, and represented in structured markdown
+    - Image detected, cropped, and annotated with semantic description
+    - Both injected into the document retrieval schema alongside exact bounding box coordinates
+    """
+    report_pdf = Path("data/uploads/sample_enterprise_report.pdf")
+    assert report_pdf.exists(), "Sample enterprise report PDF must exist"
+
+    pipeline = MultimodalIngestionPipeline(chunk_size=400, inject_visual_summaries=True)
+    result = pipeline.process_file(report_pdf)
+
+    # 1. Structural assertions
+    assert isinstance(result, MultimodalDocument)
+    assert result.total_pages == 2
+    assert result.file_type == "pdf"
+
+    # 2. Multimodal asset assertions: BOTH table AND image must be present
+    extracted_types = {v.element_type for v in result.visual_elements}
+    assert VisualElementType.IMAGE in extracted_types, "Must extract embedded image"
+    assert VisualElementType.TABLE in extracted_types, "Must extract embedded table"
+
+    # 3. Check cropped asset files exist on disk
+    for elem in result.visual_elements:
+        crop_path = Path(elem.image_path)
+        assert crop_path.exists(), f"Cropped image asset {crop_path} must exist on disk"
+        assert crop_path.stat().st_size > 0, f"Cropped image {crop_path} must not be empty"
+
+    # 4. Schema injection assertions: chunks must contain visual summaries and bounding boxes
+    table_chunks = [c for c in result.chunks if c.chunk_type == ChunkType.TABLE]
+    image_chunks = [c for c in result.chunks if c.chunk_type == ChunkType.VISUAL_SUMMARY]
+    text_chunks = [c for c in result.chunks if c.chunk_type == ChunkType.TEXT]
+
+    assert len(table_chunks) >= 1, "Must have at least one injected table chunk"
+    assert len(image_chunks) >= 1, "Must have at least one injected image chunk"
+    assert len(text_chunks) >= 1, "Must have textual body chunks"
+
+    # 5. Provenance validation
+    for v_chunk in table_chunks + image_chunks:
+        assert len(v_chunk.bounding_boxes) > 0, "Visual chunk must maintain bounding box coordinates"
+        bbox = v_chunk.bounding_boxes[0]
+        assert bbox.page_number in [1, 2]
+        assert bbox.width > 0
+        assert bbox.height > 0
+
+

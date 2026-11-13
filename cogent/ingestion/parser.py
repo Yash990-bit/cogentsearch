@@ -441,3 +441,4 @@ class UniversalParserFactory:
             return PptxParser()
         else:
             raise ValueError(f"Unsupported document format: '{suffix}'. Supported: PDF, DOCX, PPTX.")
+

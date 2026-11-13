@@ -139,3 +139,4 @@ class MultimodalDocument(BaseModel):
             "total_tables": sum(1 for v in self.visual_elements if v.element_type == VisualElementType.TABLE),
             "total_images": sum(1 for v in self.visual_elements if v.element_type != VisualElementType.TABLE),
         }
+

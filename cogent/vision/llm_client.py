@@ -250,3 +250,4 @@ class VisionLLMClient:
                 parsed["markdown_table"] = joined_md
 
         return parsed
+

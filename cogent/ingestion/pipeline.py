@@ -189,3 +189,4 @@ class MultimodalIngestionPipeline:
                 final_chunks.append(c)
 
         return final_chunks
+
