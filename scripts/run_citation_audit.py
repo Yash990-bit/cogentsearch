@@ -41,7 +41,18 @@ def run_audit(sample_size: int = 50, seed: int = 42) -> Dict[str, Any]:
             try:
                 doc_data = json.load(f)
                 doc = MultimodalDocument(**doc_data)
+
+                # Only audit documents belonging to the persisted corpus / uploads
+                source_exists = (
+                    (CORPUS_DIR / doc.filename).exists()
+                    or Path(doc.file_path).exists()
+                    or (DATA_DIR / "uploads" / doc.filename).exists()
+                )
+                if not source_exists:
+                    continue
+
                 # Map chunk links
+
                 chunk_visual_map = {}
                 for chunk in doc.chunks:
                     for v_id in chunk.visual_element_ids:

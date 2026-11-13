@@ -177,3 +177,92 @@ class QdrantVectorStore:
         """Returns total point count in collection."""
         res = self._client.count(collection_name=self.collection_name)
         return res.count
+
+    def has_chunk(self, chunk_id: str) -> bool:
+        """Checks if a point with given chunk_id exists in Qdrant."""
+        point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, chunk_id))
+        try:
+            pts = self._client.retrieve(collection_name=self.collection_name, ids=[point_id])
+            return len(pts) > 0
+        except Exception:
+            return False
+
+    def delete_chunk(self, chunk_id: str) -> bool:
+        """
+        Deletes a specific chunk by its chunk_id from Qdrant.
+        Returns True if chunk was present and deleted, False otherwise.
+        """
+        from qdrant_client.http.models import PointIdsList
+
+        point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, chunk_id))
+        if not self.has_chunk(chunk_id):
+            return False
+
+        self._client.delete(
+            collection_name=self.collection_name,
+            points_selector=PointIdsList(points=[point_id]),
+            wait=True,
+        )
+        logger.info(f"Deleted chunk '{chunk_id}' (point {point_id}) from Qdrant collection '{self.collection_name}'.")
+        return True
+
+    def delete_by_source(self, source_file: str) -> int:
+        """
+        Deletes all chunks originating from source_file in Qdrant.
+        Returns the count of points removed.
+        """
+        from qdrant_client.http.models import FilterSelector, Filter, FieldCondition, MatchValue
+
+        count_before = self.count()
+        query_filter = Filter(must=[FieldCondition(key="source_file", match=MatchValue(value=source_file))])
+
+        self._client.delete(
+            collection_name=self.collection_name,
+            points_selector=FilterSelector(filter=query_filter),
+            wait=True,
+        )
+        count_after = self.count()
+        deleted_count = max(0, count_before - count_after)
+        logger.info(f"Deleted {deleted_count} chunks for source '{source_file}' from Qdrant.")
+        return deleted_count
+
+    def get_all_chunks(self) -> List[SearchResultChunk]:
+        """
+        Scrolls and retrieves all indexed points with payloads from Qdrant.
+        Used for index reconciliation and BM25 index reconstruction.
+        """
+        results: List[SearchResultChunk] = []
+        offset = None
+
+        while True:
+            records, next_offset = self._client.scroll(
+                collection_name=self.collection_name,
+                limit=1000,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
+            )
+            for pt in records:
+                payload = pt.payload or {}
+                bbox_raw = payload.get("bounding_box")
+                bbox = BoundingBox(**bbox_raw) if bbox_raw else None
+
+                results.append(
+                    SearchResultChunk(
+                        chunk_id=payload.get("chunk_id", str(pt.id)),
+                        content=payload.get("content", ""),
+                        modality_type=payload.get("modality_type", "text"),
+                        page_number=payload.get("page_number", 1),
+                        bounding_box=bbox,
+                        source_file=payload.get("source_file", ""),
+                        headers_hierarchy=payload.get("headers_hierarchy", []),
+                        metadata=payload.get("metadata", {}),
+                    )
+                )
+
+            if next_offset is None or len(records) == 0:
+                break
+            offset = next_offset
+
+        return results
+

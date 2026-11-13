@@ -179,3 +179,98 @@ def test_hybrid_search_rrf_and_cross_encoder(sample_indexed_documents):
     assert top_result.bounding_box is not None
     assert top_result.cross_encoder_score is not None
     assert top_result.rrf_score is not None
+
+
+def test_bm25_empty_corpus_safety():
+    """Verifies BM25Retriever handles empty document indexing and queries safely without ZeroDivisionError."""
+    bm25 = BM25Retriever()
+    # 1. Indexing empty list must not crash
+    bm25.index_documents([])
+    assert bm25.count() == 0
+
+    # 2. Searching empty index must return empty list safely
+    results = bm25.search_bm25("any query test", top_k=5)
+    assert results == []
+
+    # 3. Empty query string on empty index
+    assert bm25.search_bm25("", top_k=5) == []
+
+
+def test_bm25_single_document_positive_scoring():
+    """Verifies single-document collections return valid positive scores under Robertson-Lucene formulation."""
+    bm25 = BM25Retriever()
+    doc = IndexedDocument(
+        chunk_id="single_01",
+        content="Unique technical specification for aerospace propulsion turbine blades.",
+        modality_type="text",
+        page_number=1,
+        source_file="turbine.pdf",
+    )
+    bm25.index_documents([doc])
+    assert bm25.count() == 1
+
+    # Query matching term in the single document
+    results = bm25.search_bm25("turbine propulsion", top_k=1)
+    assert len(results) == 1
+    assert results[0].chunk_id == "single_01"
+    assert results[0].bm25_score > 0.0
+
+
+def test_bm25_persistence_and_restart_recovery(tmp_path, sample_indexed_documents):
+    """Verifies that BM25 index state saves atomically to disk and restores accurately after restart."""
+    persist_dir = tmp_path / "bm25_test_index"
+
+    # Instance 1: Index and save
+    bm25_inst1 = BM25Retriever(persist_dir=persist_dir, auto_save=True)
+    bm25_inst1.index_documents(sample_indexed_documents)
+    assert bm25_inst1.count() == len(sample_indexed_documents)
+
+    # Verify files created on disk
+    assert (persist_dir / "index_meta.json").exists()
+    assert (persist_dir / "corpus_data.json").exists()
+
+    # Simulate process shutdown / restart
+    del bm25_inst1
+
+    # Instance 2: Auto-loads from persist_dir
+    bm25_inst2 = BM25Retriever(persist_dir=persist_dir)
+    assert bm25_inst2.count() == len(sample_indexed_documents)
+
+    # Query loaded index
+    results = bm25_inst2.search_bm25("Kubernetes deployment guidelines", top_k=1)
+    assert len(results) == 1
+    assert "Kubernetes" in results[0].content
+
+
+def test_synchronized_deletion_and_update(sample_indexed_documents):
+    """Verifies delete_chunk, delete_by_source, and update_document keep Qdrant and BM25 synchronized."""
+    qdrant = QdrantVectorStore(in_memory=True)
+    bm25 = BM25Retriever()
+    hybrid = HybridRetriever(qdrant_store=qdrant, bm25_retriever=bm25)
+    hybrid.index_documents(sample_indexed_documents)
+
+    initial_count = len(sample_indexed_documents)
+    assert qdrant.count() == initial_count
+    assert bm25.count() == initial_count
+
+    # 1. Delete single chunk
+    target_cid = "doc1_chunk_0"
+    del_ok = hybrid.delete_chunk(target_cid)
+    assert del_ok is True
+    assert qdrant.count() == initial_count - 1
+    assert bm25.count() == initial_count - 1
+    assert not qdrant.has_chunk(target_cid)
+    assert not bm25.has_chunk(target_cid)
+
+    # 2. Delete by source file
+    source_to_delete = "deployment_guide.pdf"
+    deleted_source_count = hybrid.delete_by_source(source_to_delete)
+    assert deleted_source_count == 1
+    assert qdrant.count() == initial_count - 2
+    assert bm25.count() == initial_count - 2
+
+    # 3. Public retrieve() method
+    retrieve_results = hybrid.retrieve("TX-1001 transaction", top_k=2)
+    assert len(retrieve_results) > 0
+    assert "TX-1001" in retrieve_results[0].content
+
