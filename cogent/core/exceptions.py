@@ -44,3 +44,4 @@ class UnsupportedFormatError(DocumentIngestionError):
 class OCRUnavailableWarning(UserWarning):
     """Warned when a scanned page is detected but system OCR is unavailable on PATH."""
     pass
+

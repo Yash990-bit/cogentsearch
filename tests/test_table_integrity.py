@@ -89,3 +89,4 @@ def test_pptx_table_ground_truth(pipeline):
 
     assert "Pillar" in md or "Pillar" in verbatim
     assert "Owner" in md or "Owner" in verbatim
+

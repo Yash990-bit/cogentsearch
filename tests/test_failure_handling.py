@@ -86,3 +86,4 @@ def test_duplicate_filename_content_hash_idempotency(pipeline, tmp_path):
     # Repeated upload of f1 must produce identical deterministic ID
     res1_repeat = pipeline.process_file(f1)
     assert res1.document_id == res1_repeat.document_id
+

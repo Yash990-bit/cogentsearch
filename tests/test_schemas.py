@@ -76,3 +76,4 @@ def test_multimodal_document_stats():
     assert stats["total_visual_elements"] == 2
     assert stats["total_tables"] == 1
     assert stats["total_images"] == 1
+
