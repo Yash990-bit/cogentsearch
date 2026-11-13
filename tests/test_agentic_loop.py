@@ -295,3 +295,4 @@ def test_end_to_end_agentic_rag_with_web_search_fallback(test_retriever):
     trace_str = " -> ".join(response.trace)
     assert "web_search_fallback" in trace_str
     assert "generator" in trace_str
+

@@ -87,3 +87,4 @@ def build_agentic_rag_graph(
     compiled_app = workflow.compile()
     logger.info("Successfully compiled LangGraph Agentic RAG StateGraph.")
     return compiled_app
+

@@ -88,3 +88,4 @@ class AgenticRAG:
             retry_count=final_state.get("retry_count", 0),
             trace=final_state.get("trace", []),
         )
+

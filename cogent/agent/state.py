@@ -74,3 +74,4 @@ class CitationItem(BaseModel):
     modality_type: str
     citation_tag: str
     bounding_box: Optional[Dict[str, Any]] = None
+
