@@ -156,15 +156,46 @@ The following table explicitly distinguishes previously documented narrative res
 
 Before initiating Phase 3 (Advanced Reranking Optimization & Context Compression), the following technical constraints must be accounted for:
 
-1. **Context Compression Layer:** Retrieved chunks must not be passed raw to LLM context windows; an extractive compression or token pruning layer (e.g., LongLLMLingua) is required.
-2. **Dynamic Relevance Thresholding:** Reranking must implement calibrated score thresholds to drop non-relevant candidates rather than blindly returning static top-k chunks.
-3. **Multi-Vector / Late-Interaction Reranking Exploration:** Evaluate ColBERTv2 or late-interaction token scoring to address the 85% lexical inversion vulnerability documented in Challenge 6.
-4. **Multimodal Coordinate Preservation:** Extractive summarization and compression layers must preserve line-of-sight tracking back to `source_file`, `page_number`, and `bounding_box` for downstream citation validation.
+1. **Embedding-Space Isolation & Integrity Guards:**
+   - Persist an immutable metadata header for each vector collection recording `provider`, `model_name`, `dimension`, and `vector_version`.
+   - Prevent mid-flight fallback from OpenAI to offline hashing during transient API errors; failures must retry with exponential backoff or abort, never silently inject incompatible hash vectors into a neural index.
+   - Enforce startup compatibility checks: reject queries or upserts if the runtime embedding configuration does not match the collection's stored embedding metadata.
+2. **Context Compression Layer:** Retrieved chunks must not be passed raw to LLM context windows; an extractive compression or token pruning layer (e.g., LongLLMLingua) is required.
+3. **Dynamic Relevance Thresholding:** Reranking must implement calibrated score thresholds to drop non-relevant candidates rather than blindly returning static top-k chunks.
+4. **Multi-Vector / Late-Interaction Reranking Exploration:** Evaluate ColBERTv2 or late-interaction token scoring to address the 85% lexical inversion vulnerability documented in Challenge 6.
+5. **Multimodal Coordinate Preservation:** Extractive summarization and compression layers must preserve line-of-sight tracking back to `source_file`, `page_number`, and `bounding_box` for downstream citation validation.
 
 ---
 
-## 8. Final Status Verdict
+## 8. Final Operational & Architectural Findings (Two-Point Verification)
+
+### A. Benchmark Reproducibility Investigation
+1. **Script and Commit Lineage:** Both execution runs invoked `scripts/audit_release_gates.py` (which internally delegates to `run_test_7_quality_benchmark()` in `scripts/run_phase2_adversarial_suite.py`). Commit for first run: `752e3ae`; commit for verification run: `b0b6dd0`.
+2. **Benchmark Inputs:** The 100-document corpus (50 domain protocol specifications + 50 generic administrative noise documents) and 50 ground-truth query-needle pairs are statically generated with deterministic seed strings and loops.
+3. **Execution Environment:** In both runs, `OPENAI_API_KEY` was empty, causing `EmbeddingEngine` to consistently use the deterministic offline fallback vectorizer (`_offline_embed`).
+4. **Audit of Historical Execution Logs:**
+   - Inspection of raw task logs (`task-631.log`, `task-672.log`, `task-687.log` in `.system_generated/tasks/`) reveals that the executed benchmark code **always** produced:
+     - `BM25 Only: HitRate@4 = 1.0000, MRR = 1.0000, nDCG@4 = 1.0000`
+     - `Dense Only: HitRate@4 = 0.9200, MRR = 0.7087, nDCG@4 = 0.7531`
+     - `Hybrid RRF: HitRate@4 = 1.0000, MRR = 1.0000, nDCG@4 = 1.0000`
+     - `Hybrid RRF + Cross-Encoder: HitRate@4 = 1.0000, MRR = 1.0000, nDCG@4 = 1.0000`
+   - **Conclusion on Historical Discrepancy:** The previously cited values (`BM25: 0.8200`, `Dense: 0.9600`) never existed in any task execution log. They were unverified narrative figures drafted into the initial auditor report text rather than parsed script outputs. The actual codebase benchmark output is 100% reproducible at `BM25 = 1.0000` and `Dense = 0.9200`.
+
+### B. Embedding-Space Isolation Audit
+1. **Model & Provider Persistence:** **UNGUARDED.** Neither `QdrantVectorStore` nor `EmbeddingEngine` records the model name, provider, or vector generation algorithm in collection metadata or sidecar files. Only the vector dimension (`1536`) and distance metric (`Cosine`) are stored.
+2. **Cross-Provider Query Rejection:** **UNGUARDED.** Qdrant accepts any vector matching dimension 1536. A query embedded with offline hash projections will execute against OpenAI neural embeddings without warning or error, returning degraded nearest neighbors.
+3. **Transient API Failure Mid-Flight Mixing:** **CRITICAL RISK IDENTIFIED.** In `cogent/vectorstore/embeddings.py` (lines 52–54), when `provider == "openai"`, any transient runtime exception during an OpenAI API call catches the error, logs a warning, and falls back to `_offline_embed()`. Those hash-bucket vectors are returned and upserted directly into the same collection alongside existing OpenAI embeddings, silently contaminating the vector index.
+4. **Startup Collection Compatibility Check:** **UNGUARDED.** `QdrantVectorStore._init_client()` only verifies collection existence, not embedding model or provider parity.
+
+### C. Remaining Operational Risks Summary
+- **Index Contamination Risk:** In production, transient network timeouts to OpenAI during bulk document ingestion will silently inject incompatible offline hash vectors into the Qdrant collection.
+- **Cross-Encoder Negation Blindness:** 85.0% of adversarial lexical traps defeat `cross-encoder/ms-marco-MiniLM-L-6-v2`. Downstream answer synthesis must verify statements via an LLM judge.
+- **Embedded Database File Locking:** Embedded Qdrant SQLite lock prevents multi-process scaling on a single machine.
+
+---
+
+## 9. Final Status Verdict
 
 **Final Status:** **ACCEPTED WITH KNOWN LIMITATIONS**
 
-*Phase 2 satisfies all architectural, synchronization, persistence, and hybrid retrieval criteria. Known limitations regarding neural cross-encoder negation blindness and embedding modality incompatibility are explicitly documented, establishing the empirical foundation for Phase 3 and Phase 4.*
+*Phase 2 satisfies all functional retrieval, synchronization, persistence, and regression criteria. The critical operational risks—specifically silent vector space contamination during transient API failures and cross-encoder lexical trap susceptibility—are formally documented and assigned as mandatory release blockers for Phase 3 and Phase 4.*
