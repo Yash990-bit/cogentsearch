@@ -115,8 +115,8 @@ CogentSearch/
 ### 1. Clone & Set Up Environment
 
 ```bash
-git clone https://github.com/Yash990-bit/CogentSearch.git
-cd CogentSearch
+git clone https://github.com/Yash990-bit/cogentsearch.git
+cd cogentsearch
 
 # Create virtual environment with Python 3.12
 python3.12 -m venv .venv
