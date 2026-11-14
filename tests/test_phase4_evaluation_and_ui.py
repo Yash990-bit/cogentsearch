@@ -119,3 +119,29 @@ def test_get_bounding_box_crop_pdf():
         )
         assert crop_bytes is not None
         assert crop_bytes.startswith(b"\x89PNG")  # PNG signature
+
+
+def test_chainlit_document_ingestion_helper():
+    """Verifies that ingest_document_file processes and indexes documents for Chainlit session."""
+    from app import ingest_document_file
+    from cogent.ingestion.pipeline import MultimodalIngestionPipeline
+    from cogent.vectorstore.splitter import SemanticDocumentSplitter
+    
+    qdrant = QdrantVectorStore(in_memory=True, collection_name="col_test_chainlit_ingest")
+    bm25 = BM25Retriever()
+    hybrid = HybridRetriever(qdrant_store=qdrant, bm25_retriever=bm25)
+    
+    pdf_path = Path("data/test_corpus/doc_02_multipage_table.pdf")
+    if pdf_path.exists():
+        doc, chunks = ingest_document_file(
+            file_path=pdf_path,
+            pipeline=MultimodalIngestionPipeline(),
+            splitter=SemanticDocumentSplitter(),
+            retriever=hybrid,
+        )
+        assert doc is not None
+        assert len(chunks) > 0
+        assert hybrid.qdrant_store.count() > 0
+        assert hybrid.bm25_retriever.count() > 0
+
+
