@@ -1,11 +1,12 @@
 """
-CogentSearch — Enterprise Multimodal Agentic Document Intelligence (Streamlit UI).
+CogentSearch — Enterprise Multimodal Agentic Document Search & RAG (Streamlit UI).
 
 Phase 4 Enterprise UI:
 1. Executive Branding: CogentSearch branding with glowing orange neon ambient lighting.
-2. Ingestion Engine: Seamless drag-and-drop parsing for PDF, DOCX, and PPTX with live status.
-3. Exposing the Agent's Brain: Real-time LangGraph loop visualization via st.status().
-4. Multimodal Line-of-Sight Provenance: Exact page citations, bounding-box table/figure crops,
+2. Animated Pipeline Architecture Flow: Moving step-by-step pipeline structure with connected arrows.
+3. Ingestion Engine: Seamless drag-and-drop parsing for PDF, DOCX, and PPTX with live status.
+4. Exposing the Agent's Brain: Real-time LangGraph loop visualization via st.status().
+5. Multimodal Line-of-Sight Provenance: Exact page citations, bounding-box table/figure crops,
    and neural cross-encoder confidence scores.
 """
 
@@ -79,27 +80,8 @@ st.markdown(
         background: linear-gradient(90deg, transparent, #f97316, #fb923c, transparent);
     }
 
-    .hero-brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 6px;
-    }
-
-    .hero-badge {
-        background: rgba(249, 115, 22, 0.15);
-        color: #fb923c;
-        border: 1px solid rgba(249, 115, 22, 0.4);
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-    }
-
     .hero-title {
-        font-size: 2.1rem;
+        font-size: 2.2rem;
         font-weight: 800;
         letter-spacing: -0.5px;
         background: linear-gradient(135deg, #ffffff 30%, #fed7aa 70%, #f97316 100%);
@@ -111,7 +93,7 @@ st.markdown(
     .hero-subtitle {
         font-size: 0.98rem;
         color: #94a3b8;
-        max-width: 820px;
+        max-width: 860px;
         line-height: 1.5;
         margin-top: 6px;
     }
@@ -144,6 +126,129 @@ st.markdown(
         box-shadow: 0 0 8px #22c55e;
     }
 
+    /* Horizontal Architecture Flow Pipeline (Main View) */
+    .h-pipeline-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(249, 115, 22, 0.3);
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        overflow-x: auto;
+        gap: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(249, 115, 22, 0.12);
+    }
+
+    .h-pipe-step {
+        background: rgba(30, 41, 59, 0.65);
+        border: 1px solid rgba(249, 115, 22, 0.3);
+        border-radius: 10px;
+        padding: 10px 14px;
+        min-width: 145px;
+        text-align: center;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+        flex-shrink: 0;
+    }
+    .h-pipe-step:hover {
+        border-color: #f97316;
+        transform: translateY(-2px);
+        box-shadow: 0 0 12px rgba(249, 115, 22, 0.3);
+    }
+    .h-pipe-badge {
+        font-size: 0.65rem;
+        font-weight: 800;
+        background: rgba(249, 115, 22, 0.2);
+        color: #fb923c;
+        border: 1px solid rgba(249, 115, 22, 0.4);
+        padding: 2px 6px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-bottom: 4px;
+    }
+    .h-pipe-title {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #f1f5f9;
+    }
+    .h-pipe-desc {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
+    .h-pipe-arrow {
+        color: #f97316;
+        font-size: 1.1rem;
+        font-weight: bold;
+        text-shadow: 0 0 10px #f97316;
+        animation: pulse-arrow 1.8s infinite;
+        flex-shrink: 0;
+    }
+    @keyframes pulse-arrow {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.18); text-shadow: 0 0 16px #f97316; }
+    }
+
+    /* Vertical Pipeline Flow Container (Sidebar View) */
+    .v-pipeline-flow {
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(249, 115, 22, 0.25);
+        border-radius: 12px;
+        padding: 12px;
+        margin-top: 10px;
+    }
+    .v-pipe-node {
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(249, 115, 22, 0.25);
+        border-radius: 8px;
+        padding: 8px 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s ease;
+    }
+    .v-pipe-node:hover {
+        border-color: #f97316;
+        box-shadow: 0 0 10px rgba(249, 115, 22, 0.25);
+    }
+    .v-node-num {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        color: white;
+        font-weight: 800;
+        font-size: 0.72rem;
+        min-width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 8px rgba(249, 115, 22, 0.5);
+    }
+    .v-node-text {
+        flex: 1;
+    }
+    .v-node-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #fed7aa;
+        line-height: 1.2;
+    }
+    .v-node-sub {
+        font-size: 0.68rem;
+        color: #94a3b8;
+        line-height: 1.2;
+        margin-top: 2px;
+    }
+    .v-pipe-arrow {
+        text-align: center;
+        color: #f97316;
+        font-size: 0.8rem;
+        line-height: 1.1;
+        padding: 2px 0;
+        text-shadow: 0 0 8px #f97316;
+    }
+
     /* Metric Stat Cards */
     .metric-grid {
         display: grid;
@@ -151,7 +256,6 @@ st.markdown(
         gap: 10px;
         margin: 12px 0;
     }
-
     .stat-card {
         background: rgba(15, 23, 42, 0.65);
         border: 1px solid rgba(249, 115, 22, 0.25);
@@ -341,8 +445,8 @@ if "messages" not in st.session_state:
         {
             "role": "assistant",
             "content": (
-                "### ⚡ CogentSearch Agent Ready\n"
-                "I am your **Multimodal Agentic Document Intelligence** system. "
+                "### ⚡ CogentSearch Ready\n"
+                "I am your **Multimodal Agentic Document Search & RAG** system. "
                 "I can parse, reason, and answer questions across **multi-page PDFs, tables, charts, slides (.pptx), and Word reports (.docx)** "
                 "with strict line-of-sight page citations and visual bounding-box evidence crops.\n\n"
                 "**Quick Start:**\n"
@@ -387,7 +491,7 @@ except Exception as e:
 
 
 # ------------------------------------------------------------------------------
-# 2. SIDEBAR: DOCUMENT INGESTION & REPOSITORY TELEMETRY
+# 2. SIDEBAR: DOCUMENT INGESTION & PIPELINE ARCHITECTURE FLOW
 # ------------------------------------------------------------------------------
 with st.sidebar:
     st.markdown(
@@ -402,7 +506,7 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
-    st.caption("Self-Correcting Document Intelligence System")
+    st.caption("Self-Correcting Document Search & RAG Engine")
     st.divider()
 
     st.markdown("#### 📂 Ingestion Pipeline")
@@ -497,17 +601,70 @@ with st.sidebar:
             st.markdown(f"- `<span style='color: #fed7aa; font-family: monospace; font-size: 0.8rem;'>{fn}</span>`", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.caption("**Pipeline Infrastructure:**")
+    
+    # VISUAL PIPELINE INFRASTRUCTURE (Connected Step-by-Step Flow)
+    st.markdown("#### ⚡ Pipeline Architecture Flow")
     st.markdown(
         """
-        - ⚡ **Dense Store:** `Qdrant Cosine (1536d)`
-        - 📑 **Lexical:** `BM25 Okapi Engine`
-        - 🔀 **Fusion:** `RRF (Constant k=60)`
-        - 🎯 **Reranker:** `MiniLM-L-6-v2 Cross-Encoder`
-        - 🤖 **Agent Loop:** `LangGraph StateGraph`
-        """
+        <div class="v-pipeline-flow">
+            <div class="v-pipe-node">
+                <div class="v-node-num">1</div>
+                <div class="v-node-text">
+                    <div class="v-node-title">Ingest & Parse</div>
+                    <div class="v-node-sub">Docling & LlamaParse (Multi-modality)</div>
+                </div>
+            </div>
+            <div class="v-pipe-arrow">▼</div>
+            
+            <div class="v-pipe-node">
+                <div class="v-node-num">2</div>
+                <div class="v-node-text">
+                    <div class="v-node-title">Hybrid Retrieval</div>
+                    <div class="v-node-sub">⚡ Qdrant (1536d) + 📑 BM25 Okapi</div>
+                </div>
+            </div>
+            <div class="v-pipe-arrow">▼</div>
+
+            <div class="v-pipe-node">
+                <div class="v-node-num">3</div>
+                <div class="v-node-text">
+                    <div class="v-node-title">Rank Fusion</div>
+                    <div class="v-node-sub">🔀 Reciprocal Rank Fusion (RRF k=60)</div>
+                </div>
+            </div>
+            <div class="v-pipe-arrow">▼</div>
+
+            <div class="v-pipe-node">
+                <div class="v-node-num">4</div>
+                <div class="v-node-text">
+                    <div class="v-node-title">Neural Rerank</div>
+                    <div class="v-node-sub">🎯 MiniLM Cross-Encoder Attention</div>
+                </div>
+            </div>
+            <div class="v-pipe-arrow">▼</div>
+
+            <div class="v-pipe-node">
+                <div class="v-node-num">5</div>
+                <div class="v-node-text">
+                    <div class="v-node-title">LangGraph Agent</div>
+                    <div class="v-node-sub">🤖 Self-Correction: Rewriter ➔ Grader</div>
+                </div>
+            </div>
+            <div class="v-pipe-arrow">▼</div>
+
+            <div class="v-pipe-node" style="border-color: rgba(34, 197, 94, 0.4);">
+                <div class="v-node-num" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">6</div>
+                <div class="v-node-text">
+                    <div class="v-node-title" style="color: #86efac;">Cited Generation</div>
+                    <div class="v-node-sub">📷 High-Res Table/Chart Crops</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
+    st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🗑️ Reset Chat & Memory", use_container_width=True):
         st.session_state.messages = [st.session_state.messages[0]]
         st.rerun()
@@ -519,26 +676,70 @@ with st.sidebar:
 st.markdown(
     """
     <div class="hero-container">
-        <div class="hero-brand">
-            <span class="hero-badge">Production v2.4</span>
-            <span class="hero-badge" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border-color: rgba(34, 197, 94, 0.4);">57/57 Tests Passing</span>
-        </div>
-        <h1 class="hero-title">⚡ CogentSearch Intelligence</h1>
+        <h1 class="hero-title">⚡ CogentSearch</h1>
         <div class="hero-subtitle">
             Enterprise Multimodal RAG with self-correcting LangGraph loops, hybrid vector + lexical search, 
             and pixel-level line-of-sight table and chart visual provenance.
         </div>
         <div class="rag-status-bar">
             <div class="rag-pill"><span></span> Ingestion: Docling & LlamaParse</div>
-            <div class="rag-pill"><span></span> Hybrid: Qdrant + BM25</div>
-            <div class="rag-pill"><span></span> Fusion: RRF (k=60)</div>
-            <div class="rag-pill"><span></span> Neural: Cross-Encoder Reranker</div>
-            <div class="rag-pill"><span></span> Evaluation: RAGAS Certified (1.00)</div>
+            <div class="rag-pill"><span></span> Dense Store: Qdrant Cosine (1536d)</div>
+            <div class="rag-pill"><span></span> Lexical: BM25 Okapi Engine</div>
+            <div class="rag-pill"><span></span> Fusion: RRF (Constant k=60)</div>
+            <div class="rag-pill"><span></span> Reranker: MiniLM-L-6-v2 Cross-Encoder</div>
+            <div class="rag-pill"><span></span> Agent Loop: LangGraph StateGraph</div>
         </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
+
+# ------------------------------------------------------------------------------
+# 4. MOVING PIPELINE ARCHITECTURE FLOW (MAIN VIEW)
+# ------------------------------------------------------------------------------
+with st.expander("⚡ View Moving End-to-End Pipeline Architecture Flow", expanded=True):
+    st.markdown(
+        """
+        <div class="h-pipeline-container">
+            <div class="h-pipe-step">
+                <div class="h-pipe-badge">STAGE 1</div>
+                <div class="h-pipe-title">📂 Document Ingestion</div>
+                <div class="h-pipe-desc">Docling & LlamaParse</div>
+            </div>
+            <div class="h-pipe-arrow">➔</div>
+            <div class="h-pipe-step">
+                <div class="h-pipe-badge">STAGE 2</div>
+                <div class="h-pipe-title">⚡ Dual-Store Retrieval</div>
+                <div class="h-pipe-desc">Qdrant Dense + BM25</div>
+            </div>
+            <div class="h-pipe-arrow">➔</div>
+            <div class="h-pipe-step">
+                <div class="h-pipe-badge">STAGE 3</div>
+                <div class="h-pipe-title">🔀 Reciprocal Fusion</div>
+                <div class="h-pipe-desc">RRF (Constant k=60)</div>
+            </div>
+            <div class="h-pipe-arrow">➔</div>
+            <div class="h-pipe-step">
+                <div class="h-pipe-badge">STAGE 4</div>
+                <div class="h-pipe-title">🎯 Neural Reranking</div>
+                <div class="h-pipe-desc">Cross-Encoder Attention</div>
+            </div>
+            <div class="h-pipe-arrow">➔</div>
+            <div class="h-pipe-step">
+                <div class="h-pipe-badge">STAGE 5</div>
+                <div class="h-pipe-title">🤖 LangGraph Loop</div>
+                <div class="h-pipe-desc">Grader & Self-Correction</div>
+            </div>
+            <div class="h-pipe-arrow">➔</div>
+            <div class="h-pipe-step" style="border-color: rgba(34, 197, 94, 0.45); background: rgba(20, 83, 45, 0.3);">
+                <div class="h-pipe-badge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: rgba(34, 197, 94, 0.4);">STAGE 6</div>
+                <div class="h-pipe-title" style="color: #86efac;">📷 Verified Citations</div>
+                <div class="h-pipe-desc" style="color: #bbf7d0;">Cropped Table/Chart Crops</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # Suggested Query Quick Pills
 st.caption("💡 **Sample Verification Queries:**")
@@ -597,7 +798,7 @@ if active_prompt:
         citations = []
         image_crops = []
 
-        # 4. EXPOSING THE AGENT'S "BRAIN" (Real-time LangGraph loop visualization)
+        # 5. EXPOSING THE AGENT'S "BRAIN" (Real-time LangGraph loop visualization)
         with st.status("⚡ CogentSearch Agent Reasoning...", expanded=True) as status:
             # Step 1: Query Rewriter
             st.write("🔍 **Rewriting Query (gpt-4o-mini)...**")
@@ -661,7 +862,7 @@ if active_prompt:
 
             status.update(label="✅ Agent Reasoning Complete — Answer Synthesized!", state="complete", expanded=False)
 
-        # 5. MULTIMODAL CITATIONS DISPLAY
+        # 6. MULTIMODAL CITATIONS DISPLAY
         st.markdown(answer_text)
 
         # Render citations
