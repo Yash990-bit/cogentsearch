@@ -43,13 +43,13 @@ st.markdown(
     /* Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-    /* Global Dark Backdrop with Ambient Orange Lighting */
+    /* Global Dark Backdrop with Ambient Indigo/Violet Glow */
     .stApp {
-        background-color: #080b11;
+        background-color: #07090e;
         background-image: 
-            radial-gradient(circle at 85% 10%, rgba(249, 115, 22, 0.12) 0%, transparent 40%),
-            radial-gradient(circle at 10% 90%, rgba(234, 88, 12, 0.08) 0%, transparent 35%),
-            linear-gradient(180deg, #090d16 0%, #05070a 100%);
+            radial-gradient(circle at 80% 8%, rgba(99, 102, 241, 0.10) 0%, transparent 45%),
+            radial-gradient(circle at 15% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+            linear-gradient(180deg, #090d16 0%, #05070b 100%);
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
         color: #f1f5f9;
     }
@@ -57,15 +57,15 @@ st.markdown(
     /* Executive Hero Header */
     .hero-container {
         background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(249, 115, 22, 0.35);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(99, 102, 241, 0.25);
         border-radius: 16px;
         padding: 24px 30px;
         margin-bottom: 24px;
         box-shadow: 
             0 10px 30px -10px rgba(0, 0, 0, 0.7),
-            0 0 25px -5px rgba(249, 115, 22, 0.25);
+            0 0 25px -5px rgba(99, 102, 241, 0.18);
         position: relative;
         overflow: hidden;
     }
@@ -77,24 +77,24 @@ st.markdown(
         left: 0;
         right: 0;
         height: 2px;
-        background: linear-gradient(90deg, transparent, #f97316, #fb923c, transparent);
+        background: linear-gradient(90deg, transparent, #6366f1, #a855f7, transparent);
     }
 
     .hero-title {
         font-size: 2.2rem;
         font-weight: 800;
         letter-spacing: -0.5px;
-        background: linear-gradient(135deg, #ffffff 30%, #fed7aa 70%, #f97316 100%);
+        background: linear-gradient(135deg, #ffffff 35%, #e0e7ff 70%, #c084fc 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin: 0;
     }
 
     .hero-subtitle {
-        font-size: 0.98rem;
+        font-size: 0.96rem;
         color: #94a3b8;
         max-width: 860px;
-        line-height: 1.5;
+        line-height: 1.6;
         margin-top: 6px;
     }
 
@@ -110,9 +110,9 @@ st.markdown(
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(249, 115, 22, 0.2);
-        color: #cbd5e1;
+        background: rgba(30, 41, 59, 0.65);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        color: #e2e8f0;
         padding: 5px 12px;
         border-radius: 8px;
         font-size: 0.8rem;
@@ -122,8 +122,8 @@ st.markdown(
         width: 7px;
         height: 7px;
         border-radius: 50%;
-        background-color: #22c55e;
-        box-shadow: 0 0 8px #22c55e;
+        background-color: #10b981;
+        box-shadow: 0 0 8px #10b981;
     }
 
     /* Horizontal Architecture Flow Pipeline (Main View) */
@@ -131,37 +131,37 @@ st.markdown(
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: rgba(15, 23, 42, 0.7);
-        border: 1px solid rgba(249, 115, 22, 0.3);
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(99, 102, 241, 0.22);
         border-radius: 14px;
         padding: 16px 20px;
         margin-bottom: 20px;
         overflow-x: auto;
         gap: 8px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(249, 115, 22, 0.12);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(99, 102, 241, 0.1);
     }
 
     .h-pipe-step {
-        background: rgba(30, 41, 59, 0.65);
-        border: 1px solid rgba(249, 115, 22, 0.3);
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(148, 163, 184, 0.15);
         border-radius: 10px;
         padding: 10px 14px;
         min-width: 145px;
         text-align: center;
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        transition: all 0.25s ease;
         flex-shrink: 0;
     }
     .h-pipe-step:hover {
-        border-color: #f97316;
+        border-color: #818cf8;
         transform: translateY(-2px);
-        box-shadow: 0 0 12px rgba(249, 115, 22, 0.3);
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
     }
     .h-pipe-badge {
         font-size: 0.65rem;
         font-weight: 800;
-        background: rgba(249, 115, 22, 0.2);
-        color: #fb923c;
-        border: 1px solid rgba(249, 115, 22, 0.4);
+        background: rgba(99, 102, 241, 0.2);
+        color: #c7d2fe;
+        border: 1px solid rgba(99, 102, 241, 0.4);
         padding: 2px 6px;
         border-radius: 4px;
         display: inline-block;
@@ -178,16 +178,16 @@ st.markdown(
         margin-top: 2px;
     }
     .h-pipe-arrow {
-        color: #f97316;
+        color: #818cf8;
         font-size: 1.1rem;
         font-weight: bold;
-        text-shadow: 0 0 10px #f97316;
-        animation: pulse-arrow 1.8s infinite;
+        text-shadow: 0 0 10px rgba(129, 140, 248, 0.6);
+        animation: pulse-arrow 2s infinite;
         flex-shrink: 0;
     }
     @keyframes pulse-arrow {
         0%, 100% { opacity: 0.6; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.18); text-shadow: 0 0 16px #f97316; }
+        50% { opacity: 1; transform: scale(1.15); text-shadow: 0 0 16px #818cf8; }
     }
 
     /* Metric Stat Cards */
@@ -199,21 +199,21 @@ st.markdown(
     }
     .stat-card {
         background: rgba(15, 23, 42, 0.65);
-        border: 1px solid rgba(249, 115, 22, 0.25);
+        border: 1px solid rgba(99, 102, 241, 0.2);
         border-radius: 12px;
         padding: 14px 12px;
         text-align: center;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(249, 115, 22, 0.08);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         transition: transform 0.2s ease, border-color 0.2s ease;
     }
     .stat-card:hover {
-        border-color: rgba(249, 115, 22, 0.5);
+        border-color: rgba(168, 85, 247, 0.5);
         transform: translateY(-2px);
     }
     .stat-number {
         font-size: 1.6rem;
         font-weight: 800;
-        color: #fb923c;
+        color: #c084fc;
         font-family: 'JetBrains Mono', monospace;
     }
     .stat-label {
@@ -230,79 +230,81 @@ st.markdown(
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        background: rgba(249, 115, 22, 0.1);
-        border: 1px solid rgba(249, 115, 22, 0.4);
-        color: #fed7aa;
+        background: rgba(99, 102, 241, 0.12);
+        border: 1px solid rgba(99, 102, 241, 0.35);
+        color: #c7d2fe;
         border-radius: 6px;
         padding: 4px 10px;
         margin: 3px 4px 3px 0;
         font-family: 'JetBrains Mono', monospace;
         font-size: 0.8rem;
         font-weight: 500;
-        box-shadow: 0 0 10px rgba(249, 115, 22, 0.15);
     }
     .cite-badge-table {
-        background: rgba(168, 85, 247, 0.12);
+        background: rgba(168, 85, 247, 0.14);
         border-color: rgba(168, 85, 247, 0.45);
-        color: #e9d5ff;
-        box-shadow: 0 0 10px rgba(168, 85, 247, 0.15);
+        color: #f3e8ff;
     }
     .cite-badge-image {
-        background: rgba(16, 185, 129, 0.12);
+        background: rgba(16, 185, 129, 0.14);
         border-color: rgba(16, 185, 129, 0.45);
         color: #a7f3d0;
-        box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+    }
+    .cite-badge-audio {
+        background: rgba(56, 189, 248, 0.14);
+        border-color: rgba(56, 189, 248, 0.45);
+        color: #bae6fd;
     }
 
     /* Visual Crop Container */
     .crop-frame {
-        border: 2px solid rgba(249, 115, 22, 0.45);
+        border: 1px solid rgba(168, 85, 247, 0.4);
         border-radius: 12px;
-        padding: 4px;
-        background: rgba(15, 23, 42, 0.85);
+        padding: 6px;
+        background: rgba(15, 23, 42, 0.9);
         box-shadow: 
             0 8px 24px rgba(0, 0, 0, 0.6),
-            0 0 20px rgba(249, 115, 22, 0.2);
+            0 0 20px rgba(168, 85, 247, 0.18);
         margin: 14px 0;
     }
 
     /* Streamlit Chat & Input Styling */
     .stChatMessage {
-        background-color: rgba(15, 23, 42, 0.5) !important;
+        background-color: rgba(15, 23, 42, 0.6) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 14px !important;
-        padding: 16px !important;
+        padding: 18px !important;
         margin-bottom: 14px !important;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
     }
     
-    /* Buttons — Sleek Violet Gradient with Glowing Violet Neon Shadows */
+    /* Buttons — Smooth Luxurious Electric Indigo & Royal Violet */
     .stButton>button {
-        background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 50%, #7c3aed 100%) !important;
+        background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #9333ea 100%) !important;
         color: #ffffff !important;
         font-weight: 700 !important;
         font-size: 0.88rem !important;
         letter-spacing: 0.3px !important;
-        border: 1px solid rgba(216, 180, 254, 0.55) !important;
+        border: 1px solid rgba(216, 180, 254, 0.45) !important;
         border-radius: 10px !important;
         padding: 9px 20px !important;
         box-shadow: 
-            0 4px 18px rgba(0, 0, 0, 0.5),
-            0 0 24px rgba(168, 85, 247, 0.55) !important;
+            0 4px 18px rgba(0, 0, 0, 0.4),
+            0 0 20px rgba(99, 102, 241, 0.32) !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     .stButton>button:hover {
-        background: linear-gradient(135deg, #c084fc 0%, #a855f7 50%, #8b5cf6 100%) !important;
-        border-color: rgba(243, 232, 255, 0.9) !important;
+        background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #a855f7 100%) !important;
+        border-color: rgba(243, 232, 255, 0.85) !important;
         box-shadow: 
-            0 6px 28px rgba(0, 0, 0, 0.6),
-            0 0 35px rgba(192, 132, 252, 0.75) !important;
-        transform: translateY(-2px) !important;
+            0 6px 24px rgba(0, 0, 0, 0.5),
+            0 0 28px rgba(168, 85, 247, 0.6) !important;
+        transform: translateY(-1.5px) !important;
         color: #ffffff !important;
     }
     .stButton>button:active {
         transform: translateY(0px) !important;
-        box-shadow: 0 2px 14px rgba(168, 85, 247, 0.5) !important;
+        box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4) !important;
     }
     </style>
     """,
@@ -455,10 +457,10 @@ with st.sidebar:
     st.markdown(
         """
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-            <div style="background: rgba(249, 115, 22, 0.2); border: 1px solid #f97316; border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">⚡</div>
+            <div style="background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%); border: 1px solid rgba(216, 180, 254, 0.45); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 0 16px rgba(99, 102, 241, 0.45);">⚡</div>
             <div>
                 <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #f1f5f9;">CogentSearch</h3>
-                <span style="font-size: 0.72rem; color: #f97316; font-weight: 600; letter-spacing: 0.5px;">MULTIMODAL AGENTIC RAG</span>
+                <span style="font-size: 0.72rem; color: #c084fc; font-weight: 700; letter-spacing: 0.8px;">MULTIMODAL AGENTIC RAG</span>
             </div>
         </div>
         """,
@@ -557,7 +559,7 @@ with st.sidebar:
     if st.session_state.indexed_files:
         st.caption("**Indexed Corpus:**")
         for fn in sorted(st.session_state.indexed_files):
-            st.markdown(f"- `<span style='color: #fed7aa; font-family: monospace; font-size: 0.8rem;'>{fn}</span>`", unsafe_allow_html=True)
+            st.markdown(f"- `<span style='color: #c7d2fe; font-family: monospace; font-size: 0.8rem;'>{fn}</span>`", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🗑️ Reset Chat & Memory", use_container_width=True):
@@ -639,7 +641,7 @@ for msg in st.session_state.messages:
             badges_html = ""
             for cit in msg["citations"]:
                 mod = cit.get("modality_type", "text").lower()
-                cls = "cite-badge-table" if "table" in mod else ("cite-badge-image" if "image" in mod else "cite-badge")
+                cls = "cite-badge-table" if "table" in mod else ("cite-badge-image" if "image" in mod else ("cite-badge-audio" if "audio" in mod or "transcript" in mod else "cite-badge"))
                 badges_html += f'<span class="cite-badge {cls}">[{cit.get("source_file")}, p.{cit.get("page_number")}, {mod.upper()}]</span> '
             st.markdown(badges_html, unsafe_allow_html=True)
 
@@ -744,7 +746,7 @@ if active_prompt:
             badges_html = ""
             for cit in citations:
                 mod = cit.get("modality_type", "text").lower()
-                cls = "cite-badge-table" if "table" in mod else ("cite-badge-image" if "image" in mod else "cite-badge")
+                cls = "cite-badge-table" if "table" in mod else ("cite-badge-image" if "image" in mod else ("cite-badge-audio" if "audio" in mod or "transcript" in mod else "cite-badge"))
                 badges_html += f'<span class="cite-badge {cls}">[{cit.get("source_file")}, p.{cit.get("page_number")}, {mod.upper()}]</span> '
 
                 # Check if visual element needs high-res crop
