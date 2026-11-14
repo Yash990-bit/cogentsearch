@@ -190,65 +190,6 @@ st.markdown(
         50% { opacity: 1; transform: scale(1.18); text-shadow: 0 0 16px #f97316; }
     }
 
-    /* Vertical Pipeline Flow Container (Sidebar View) */
-    .v-pipeline-flow {
-        background: rgba(15, 23, 42, 0.65);
-        border: 1px solid rgba(249, 115, 22, 0.25);
-        border-radius: 12px;
-        padding: 12px;
-        margin-top: 10px;
-    }
-    .v-pipe-node {
-        background: rgba(30, 41, 59, 0.55);
-        border: 1px solid rgba(249, 115, 22, 0.25);
-        border-radius: 8px;
-        padding: 8px 10px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.2s ease;
-    }
-    .v-pipe-node:hover {
-        border-color: #f97316;
-        box-shadow: 0 0 10px rgba(249, 115, 22, 0.25);
-    }
-    .v-node-num {
-        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-        color: white;
-        font-weight: 800;
-        font-size: 0.72rem;
-        min-width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 0 8px rgba(249, 115, 22, 0.5);
-    }
-    .v-node-text {
-        flex: 1;
-    }
-    .v-node-title {
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: #fed7aa;
-        line-height: 1.2;
-    }
-    .v-node-sub {
-        font-size: 0.68rem;
-        color: #94a3b8;
-        line-height: 1.2;
-        margin-top: 2px;
-    }
-    .v-pipe-arrow {
-        text-align: center;
-        color: #f97316;
-        font-size: 0.8rem;
-        line-height: 1.1;
-        padding: 2px 0;
-        text-shadow: 0 0 8px #f97316;
-    }
-
     /* Metric Stat Cards */
     .metric-grid {
         display: grid;
@@ -458,14 +399,18 @@ if "messages" not in st.session_state:
         {
             "role": "assistant",
             "content": (
-                "### ⚡ CogentSearch Ready\n"
-                "I am your **Multimodal Agentic Document Search & RAG** system. "
-                "I can parse, reason, and answer questions across **multi-page PDFs, tables, charts, slides (.pptx), and Word reports (.docx)** "
-                "with strict line-of-sight page citations and visual bounding-box evidence crops.\n\n"
-                "**Quick Start:**\n"
-                "1. Click **📂 Preload Enterprise Corpus** in the sidebar to test immediately.\n"
-                "2. Or drag and drop your own documents into the uploader.\n"
-                "3. Try asking about financial metrics, architectural diagrams, or operational specifications."
+                "### ⚡ CogentSearch Autonomous Agent Online\n"
+                "I am **CogentSearch**, an enterprise-grade **Multimodal Agentic Document Search & Reasoning Engine**. "
+                "I parse, index, and reason across heterogeneous corporate documents — including multi-page PDFs, complex financial tables, trend charts, slide presentations (`.pptx`), and structured reports (`.docx`) — providing strict line-of-sight page citations and cropped visual evidence.\n\n"
+                "#### 🤖 Agentic Capabilities:\n"
+                "- **Autonomous LangGraph State Machine:** Self-correcting loop (`Query Rewrite` ➔ `Hybrid Retrieve` ➔ `Grade Evidence` ➔ `Synthesize Cited Answer`).\n"
+                "- **Dual-Engine Hybrid Retrieval:** High-dimensional semantic search (**Qdrant Cosine 1536d**) combined with lexical keyword matching (**BM25 Okapi**), fused via Reciprocal Rank Fusion (**RRF $k=60$**).\n"
+                "- **Deep Neural Reranking:** Precision reranking using a **MiniLM Cross-Encoder** attention mechanism to eliminate semantic distractors.\n"
+                "- **Multimodal Visual Provenance:** Automatic extraction of pixel-accurate bounding box crops for tables, graphs, and figures alongside exact page references.\n\n"
+                "#### 🚀 Quick Start Guide:\n"
+                "1. Click **📂 Preload Enterprise Corpus** in the sidebar to benchmark across enterprise financial statements, architecture charts, and deck slides.\n"
+                "2. Or drag-and-drop your custom `.pdf`, `.docx`, or `.pptx` documents into the uploader.\n"
+                "3. Select one of the verification prompt pills above or type any analytical question below."
             ),
             "citations": [],
             "image_crops": [],
@@ -612,27 +557,6 @@ with st.sidebar:
         st.caption("**Indexed Corpus:**")
         for fn in sorted(st.session_state.indexed_files):
             st.markdown(f"- `<span style='color: #fed7aa; font-family: monospace; font-size: 0.8rem;'>{fn}</span>`", unsafe_allow_html=True)
-
-    st.markdown("---")
-    
-    # VISUAL PIPELINE INFRASTRUCTURE (Connected Step-by-Step Flow)
-    st.markdown("#### ⚡ Pipeline Architecture")
-    sidebar_pipe_html = (
-        '<div class="v-pipeline-flow">'
-        '<div class="v-pipe-node"><div class="v-node-num">1</div><div class="v-node-text"><div class="v-node-title">Ingest & Parse</div><div class="v-node-sub">Docling & LlamaParse</div></div></div>'
-        '<div class="v-pipe-arrow">▼</div>'
-        '<div class="v-pipe-node"><div class="v-node-num">2</div><div class="v-node-text"><div class="v-node-title">Hybrid Retrieval</div><div class="v-node-sub">Qdrant 1536d + BM25</div></div></div>'
-        '<div class="v-pipe-arrow">▼</div>'
-        '<div class="v-pipe-node"><div class="v-node-num">3</div><div class="v-node-text"><div class="v-node-title">Rank Fusion</div><div class="v-node-sub">RRF (k=60)</div></div></div>'
-        '<div class="v-pipe-arrow">▼</div>'
-        '<div class="v-pipe-node"><div class="v-node-num">4</div><div class="v-node-text"><div class="v-node-title">Neural Rerank</div><div class="v-node-sub">MiniLM Cross-Encoder</div></div></div>'
-        '<div class="v-pipe-arrow">▼</div>'
-        '<div class="v-pipe-node"><div class="v-node-num">5</div><div class="v-node-text"><div class="v-node-title">LangGraph Agent</div><div class="v-node-sub">Self-Correction Loop</div></div></div>'
-        '<div class="v-pipe-arrow">▼</div>'
-        '<div class="v-pipe-node" style="border-color: rgba(34, 197, 94, 0.5);"><div class="v-node-num" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">6</div><div class="v-node-text"><div class="v-node-title" style="color: #86efac;">Cited Generation</div><div class="v-node-sub">High-Res Table/Chart Crops</div></div></div>'
-        '</div>'
-    )
-    st.markdown(sidebar_pipe_html, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🗑️ Reset Chat & Memory", use_container_width=True):
