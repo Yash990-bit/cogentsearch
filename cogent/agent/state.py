@@ -75,3 +75,25 @@ class CitationItem(BaseModel):
     citation_tag: str
     bounding_box: Optional[Dict[str, Any]] = None
 
+
+class StructuredCitation(BaseModel):
+    """Pydantic schema for an individual citation output via OpenAI function calling."""
+
+    source_file: str = Field(description="Filename of the cited evidence, e.g. 'earnings_report.docx'")
+    page_number: int = Field(description="Page or slide number of the cited evidence (1-indexed)")
+    modality_type: str = Field(description="Type of evidence: 'Text', 'Table', or 'Image'")
+    cited_claim: Optional[str] = Field(default=None, description="Specific factual claim or data point supported by this citation")
+    bounding_box: Optional[Dict[str, Any]] = Field(default=None, description="Optional bounding box coordinates if available")
+
+
+class GeneratorStructuredOutput(BaseModel):
+    """Pydantic schema for Generator node enforcing structured JSON output via function calling."""
+
+    answer: str = Field(
+        description="Clear, comprehensive factual answer synthesizing retrieved evidence with citations appended in text like [Source: FileName, Page X, Type: Y]"
+    )
+    citations: List[StructuredCitation] = Field(
+        default_factory=list,
+        description="Structured JSON list of citations directly grounding the claims in the answer"
+    )
+

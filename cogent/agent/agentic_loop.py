@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional, List
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from cogent.schemas.indexing import SearchResultChunk
 from cogent.agent.graph import build_agentic_rag_graph
 from cogent.agent.state import AgentState, CitationItem
 from cogent.retrieval.hybrid_retriever import HybridRetriever
@@ -24,6 +25,7 @@ class AgenticResponse(BaseModel):
     generation: str
     citations: List[CitationItem]
     retrieved_chunk_count: int
+    retrieved_documents: List[SearchResultChunk] = Field(default_factory=list)
     web_search_used: bool
     retry_count: int
     trace: List[str]
@@ -84,6 +86,7 @@ class AgenticRAG:
             generation=final_state.get("generation", ""),
             citations=citations,
             retrieved_chunk_count=len(final_state.get("documents", [])),
+            retrieved_documents=final_state.get("documents", []),
             web_search_used=final_state.get("web_search_needed", False),
             retry_count=final_state.get("retry_count", 0),
             trace=final_state.get("trace", []),

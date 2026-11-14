@@ -17,7 +17,14 @@ from loguru import logger
 from cogent.core.config import settings
 from cogent.schemas.indexing import SearchResultChunk
 from cogent.retrieval.hybrid_retriever import HybridRetriever
-from cogent.agent.state import AgentState, GradeResult, RewriteResult, CitationItem
+from cogent.agent.state import (
+    AgentState,
+    GradeResult,
+    RewriteResult,
+    CitationItem,
+    StructuredCitation,
+    GeneratorStructuredOutput,
+)
 from cogent.agent.compressor import ContextCompressor
 from cogent.agent.prompts import (
     REWRITER_SYSTEM_PROMPT,
@@ -38,29 +45,59 @@ class AgentNodes:
         self.retriever = hybrid_retriever
         self.max_retries = max_retries
         self._llm = llm
+        self._rewriter_llm = None
+        self._grader_llm = None
+        self._generator_llm = None
         self._init_llm()
 
     def _init_llm(self) -> None:
-        """Initializes LangChain ChatOpenAI if API key exists, otherwise activates local fallback."""
+        """
+        Initializes LangChain ChatOpenAI models with cost-effective smart routing:
+        - gpt-4o-mini for Query Rewriting and Document Grading
+        - larger/flagship model (e.g. gpt-4o) for final Answer Generation
+        """
         if self._llm is not None:
+            self._rewriter_llm = self._llm
+            self._grader_llm = self._llm
+            self._generator_llm = self._llm
             return
 
         api_key = settings.OPENAI_API_KEY
         if api_key:
             try:
                 from langchain_openai import ChatOpenAI
-                self._llm = ChatOpenAI(
-                    model=settings.LLM_MODEL_NAME,
+                self._rewriter_llm = ChatOpenAI(
+                    model=settings.REWRITER_MODEL_NAME,
                     temperature=settings.LLM_TEMPERATURE,
                     api_key=api_key,
                 )
-                logger.info(f"Initialized ChatOpenAI model '{settings.LLM_MODEL_NAME}'.")
+                self._grader_llm = ChatOpenAI(
+                    model=settings.GRADER_MODEL_NAME,
+                    temperature=settings.LLM_TEMPERATURE,
+                    api_key=api_key,
+                )
+                self._generator_llm = ChatOpenAI(
+                    model=settings.GENERATOR_MODEL_NAME,
+                    temperature=settings.LLM_TEMPERATURE,
+                    api_key=api_key,
+                )
+                self._llm = self._generator_llm
+                logger.info(
+                    f"Initialized smart model routing: Rewriter/Grader='{settings.REWRITER_MODEL_NAME}', "
+                    f"Generator='{settings.GENERATOR_MODEL_NAME}'."
+                )
             except Exception as e:
                 logger.warning(f"Could not initialize ChatOpenAI: {e}. Using deterministic agent fallback.")
                 self._llm = None
+                self._rewriter_llm = None
+                self._grader_llm = None
+                self._generator_llm = None
         else:
             logger.info("Operating in deterministic offline Agent LLM mode.")
             self._llm = None
+            self._rewriter_llm = None
+            self._grader_llm = None
+            self._generator_llm = None
 
     # =========================================================================
     # Node 1: Query Rewriter
@@ -78,7 +115,8 @@ class AgentNodes:
 
         logger.info(f"Executing Query Rewriter (attempt {retry_count + 1}) for: '{question}'")
 
-        if self._llm is not None:
+        rewriter_llm = self._rewriter_llm or self._llm
+        if rewriter_llm is not None:
             try:
                 from langchain_core.messages import SystemMessage, HumanMessage
                 feedback_prompt = ""
@@ -89,7 +127,7 @@ class AgentNodes:
                     SystemMessage(content=REWRITER_SYSTEM_PROMPT),
                     HumanMessage(content=f"Original Query: {question}{feedback_prompt}\nOptimized Search Query:"),
                 ]
-                response = self._llm.invoke(messages)
+                response = rewriter_llm.invoke(messages)
                 rewritten = response.content.strip().replace('"', "")
             except Exception as e:
                 logger.error(f"Error in LLM query rewrite: {e}. Using rule-based rewrite.")
@@ -168,7 +206,8 @@ class AgentNodes:
             for d in documents
         )
 
-        if self._llm is not None:
+        grader_llm = self._grader_llm or self._llm
+        if grader_llm is not None:
             try:
                 from langchain_core.messages import SystemMessage, HumanMessage
                 messages = [
@@ -183,7 +222,7 @@ class AgentNodes:
                         )
                     ),
                 ]
-                response = self._llm.invoke(messages).content.strip()
+                response = grader_llm.invoke(messages).content.strip()
                 score_match = re.search(r"BINARY_SCORE:\s*(yes|no)", response, re.IGNORECASE)
                 is_relevant = (score_match.group(1).lower() == "yes") if score_match else ("yes" in response.lower()[:30])
                 reasoning = response
@@ -380,7 +419,9 @@ class AgentNodes:
 
         full_context = "\n\n".join(context_blocks)
 
-        if self._llm is not None:
+        gen_llm = self._generator_llm or self._llm
+        citations = []
+        if gen_llm is not None:
             try:
                 from langchain_core.messages import SystemMessage, HumanMessage
                 messages = [
@@ -389,19 +430,35 @@ class AgentNodes:
                         content=(
                             f"User Question: {question}\n\n"
                             f"Context Passages with Citations:\n{full_context}\n\n"
-                            "Answer the question and strictly cite every claim using [Source: FileName, Page X, Type: Y]."
+                            "Answer the question factually based ONLY on the provided context passages. "
+                            "Strictly cite all claims with their exact source filename, page, and modality type."
                         )
                     ),
                 ]
-                answer = self._llm.invoke(messages).content.strip()
+                # Force Pydantic structured outputs via OpenAI's function calling / structured outputs
+                if hasattr(gen_llm, "with_structured_output"):
+                    structured_llm = gen_llm.with_structured_output(GeneratorStructuredOutput)
+                    structured_res = structured_llm.invoke(messages)
+                    if isinstance(structured_res, GeneratorStructuredOutput):
+                        answer = structured_res.answer
+                        citations = self._validate_structured_citations(structured_res.citations, documents, web_docs)
+                        text_citations = self._extract_citations(answer, documents, web_docs)
+                        for tc in text_citations:
+                            if not any(c.citation_tag == tc.citation_tag for c in citations):
+                                citations.append(tc)
+                    else:
+                        answer = str(structured_res)
+                        citations = self._extract_citations(answer, documents, web_docs)
+                else:
+                    answer = gen_llm.invoke(messages).content.strip()
+                    citations = self._extract_citations(answer, documents, web_docs)
             except Exception as e:
                 logger.error(f"Error in LLM generator: {e}. Using deterministic cited synthesis.")
                 answer = self._deterministic_generate(question, documents, web_docs, web_needed)
+                citations = self._extract_citations(answer, documents, web_docs)
         else:
             answer = self._deterministic_generate(question, documents, web_docs, web_needed)
-
-        # Parse and validate citations
-        citations = self._extract_citations(answer, documents, web_docs)
+            citations = self._extract_citations(answer, documents, web_docs)
 
         logger.info(f"Generated answer ({len(answer)} chars) with {len(citations)} verified citations.")
         return {
@@ -409,6 +466,63 @@ class AgentNodes:
             "citations": [c.model_dump() for c in citations],
             "trace": trace,
         }
+
+    @staticmethod
+    def _validate_structured_citations(
+        raw_citations: List[Any],
+        documents: List[SearchResultChunk],
+        web_docs: List[Dict[str, Any]],
+    ) -> List[CitationItem]:
+        """Validates structured Pydantic citations against retrieved document evidence and web docs."""
+        doc_map = {}
+        for d in documents:
+            norm_name = Path(d.source_file).name.lower()
+            doc_map[(norm_name, d.page_number)] = d
+            doc_map[(d.source_file.lower(), d.page_number)] = d
+
+        web_sources = {w.get("source", "").lower(): w for w in web_docs}
+        citations: List[CitationItem] = []
+        seen_tags = set()
+
+        for c in raw_citations:
+            source_file = getattr(c, "source_file", "").strip()
+            page_num = getattr(c, "page_number", 1)
+            c_type = getattr(c, "modality_type", "Text").capitalize()
+            tag = f"[Source: {source_file}, Page {page_num}, Type: {c_type}]"
+
+            if tag in seen_tags:
+                continue
+
+            norm_source = Path(source_file).name.lower()
+            key_name = (norm_source, page_num)
+            key_full = (source_file.lower(), page_num)
+
+            matched_chunk = doc_map.get(key_name) or doc_map.get(key_full)
+            matched_web = web_sources.get(source_file.lower()) or web_sources.get(norm_source)
+
+            if not matched_chunk and not matched_web:
+                logger.warning(
+                    f"Rejecting ungrounded structured citation '{tag}': "
+                    f"source '{source_file}' (page {page_num}) was never retrieved."
+                )
+                continue
+
+            bbox = None
+            if matched_chunk and matched_chunk.bounding_box:
+                bbox = matched_chunk.bounding_box.model_dump()
+
+            seen_tags.add(tag)
+            citations.append(
+                CitationItem(
+                    source_file=source_file,
+                    page_number=page_num,
+                    modality_type=c_type,
+                    citation_tag=tag,
+                    bounding_box=bbox,
+                )
+            )
+
+        return citations
 
     @staticmethod
     def _deterministic_generate(

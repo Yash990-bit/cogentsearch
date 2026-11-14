@@ -38,8 +38,11 @@ class Settings(BaseSettings):
     VISION_MAX_TOKENS: int = 1000
     VISION_TEMPERATURE: float = 0.2
 
-    # LLM & Agentic Settings (Phase 3)
-    LLM_MODEL_NAME: str = "gpt-4o-mini"
+    # LLM & Agentic Settings (Phase 3 & 4)
+    LLM_MODEL_NAME: str = "gpt-4o"
+    REWRITER_MODEL_NAME: str = "gpt-4o-mini"
+    GRADER_MODEL_NAME: str = "gpt-4o-mini"
+    GENERATOR_MODEL_NAME: str = "gpt-4o"
     LLM_TEMPERATURE: float = 0.0
     MAX_REWRITE_RETRIES: int = 2
     WEB_SEARCH_ENABLED: bool = True
