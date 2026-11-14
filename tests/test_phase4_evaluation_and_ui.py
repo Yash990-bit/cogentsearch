@@ -145,3 +145,22 @@ def test_chainlit_document_ingestion_helper():
         assert hybrid.bm25_retriever.count() > 0
 
 
+def test_chainlit_step_vector_search_robustness():
+    """Verifies that format_vector_search_step handles SearchResultChunk attributes without AttributeError."""
+    from app import format_vector_search_step
+    chunk = SearchResultChunk(
+        chunk_id="c_test",
+        content="Test content",
+        modality_type="table",
+        page_number=2,
+        source_file="doc_sample.pdf",
+        rrf_score=0.016,
+        cross_encoder_score=0.985,
+    )
+    result = format_vector_search_step(query="financial metrics", documents=[chunk])
+    assert "TABLE" in result
+    assert "0.0160" in result
+    assert "0.9850" in result
+
+
+

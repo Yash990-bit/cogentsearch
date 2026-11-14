@@ -114,20 +114,29 @@ async def step_rewrite_query(question: str, rewritten_query: str, attempt: int =
     return output
 
 
-@cl.step(name="⚡ Searching Vector DB (Hybrid Dense + BM25)", type="tool")
-async def step_vector_search(query: str, documents: List[SearchResultChunk]) -> str:
-    """Chainlit step showing Phase 2 Hybrid Retrieval results and neural reranking."""
+def format_vector_search_step(query: str, documents: List[SearchResultChunk]) -> str:
+    """Formats Phase 2 Hybrid Retrieval results and neural reranking output."""
     lines = [
         f"**Search Query:** `{query}`\n",
         f"**Retrieved & Reranked:** `{len(documents)} chunks`\n",
     ]
     for i, doc in enumerate(documents[:5]):
-        modality = doc.modality_type.upper()
+        modality = getattr(doc, "modality_type", "text").upper()
+        rrf = getattr(doc, "rrf_score", None)
+        rrf_str = f"{rrf:.4f}" if isinstance(rrf, (int, float)) else "N/A"
+        ce = getattr(doc, "cross_encoder_score", None) or getattr(doc, "score", None)
+        ce_str = f"{ce:.4f}" if isinstance(ce, (int, float)) else "N/A"
         lines.append(
             f"{i+1}. **[{modality}]** `{doc.source_file}` (p. {doc.page_number}) — "
-            f"RRF: `{doc.rrf_score:.4f}` | Cross-Encoder: `{doc.rerank_score:.4f}`"
+            f"RRF: `{rrf_str}` | Cross-Encoder: `{ce_str}`"
         )
     return "\n".join(lines)
+
+
+@cl.step(name="⚡ Searching Vector DB (Hybrid Dense + BM25)", type="tool")
+async def step_vector_search(query: str, documents: List[SearchResultChunk]) -> str:
+    """Chainlit step showing Phase 2 Hybrid Retrieval results and neural reranking."""
+    return format_vector_search_step(query, documents)
 
 
 @cl.step(name="⚖️ Grading Evidence (Self-Correction)", type="tool")
@@ -330,35 +339,38 @@ async def on_message(message: cl.Message):
         for node_name, node_update in chunk.items():
             current_state.update(node_update)
 
-            if node_name == "query_rewriter":
-                attempt = current_state.get("retry_count", 0) + 1
-                await step_rewrite_query(
-                    question=current_state["question"],
-                    rewritten_query=node_update.get("rewritten_query", ""),
-                    attempt=attempt,
-                )
+            try:
+                if node_name == "query_rewriter":
+                    attempt = current_state.get("retry_count", 0) + 1
+                    await step_rewrite_query(
+                        question=current_state["question"],
+                        rewritten_query=node_update.get("rewritten_query", ""),
+                        attempt=attempt,
+                    )
 
-            elif node_name == "retriever":
-                await step_vector_search(
-                    query=current_state.get("rewritten_query", current_state["question"]),
-                    documents=node_update.get("documents", []),
-                )
+                elif node_name == "retriever":
+                    await step_vector_search(
+                        query=current_state.get("rewritten_query", current_state["question"]),
+                        documents=node_update.get("documents", []),
+                    )
 
-            elif node_name == "doc_grader":
-                await step_grade_evidence(
-                    is_relevant=node_update.get("is_relevant", False),
-                    reason=node_update.get("grade_reason", "No evaluation details."),
-                )
+                elif node_name == "doc_grader":
+                    await step_grade_evidence(
+                        is_relevant=node_update.get("is_relevant", False),
+                        reason=node_update.get("grade_reason", "No evaluation details."),
+                    )
 
-            elif node_name == "web_search":
-                await step_web_search(
-                    query=current_state.get("rewritten_query", current_state["question"]),
-                    results=node_update.get("web_documents", []),
-                )
+                elif node_name == "web_search":
+                    await step_web_search(
+                        query=current_state.get("rewritten_query", current_state["question"]),
+                        results=node_update.get("web_documents", []),
+                    )
 
-            elif node_name == "generator":
-                citations = node_update.get("citations", [])
-                await step_draft_answer(citations_count=len(citations))
+                elif node_name == "generator":
+                    citations = node_update.get("citations", [])
+                    await step_draft_answer(citations_count=len(citations))
+            except Exception as step_err:
+                logger.warning(f"Error rendering step for node {node_name}: {step_err}")
 
     # --------------------------------------------------------------------------
     # 3. MULTIMODAL CITATIONS & PROVENANCE CROPS
@@ -402,7 +414,7 @@ async def on_message(message: cl.Message):
             # Fallback to matching document text
             for d in documents:
                 if d.source_file == src_file and d.page_number == page_num:
-                    matched_text = d.text
+                    matched_text = getattr(d, "content", "") or getattr(d, "text", "")
                     break
 
         element_name = f"Source [{src_file}, Page {page_num}]"
