@@ -335,20 +335,32 @@ st.markdown(
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
     }
     
-    /* Buttons */
+    /* Buttons — Sleek Violet Gradient with Glowing Violet Neon Shadows */
     .stButton>button {
-        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%) !important;
         color: #ffffff !important;
         font-weight: 600 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 8px 18px !important;
-        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.35) !important;
-        transition: all 0.2s ease !important;
+        font-size: 0.88rem !important;
+        border: 1px solid rgba(196, 181, 253, 0.35) !important;
+        border-radius: 10px !important;
+        padding: 9px 20px !important;
+        box-shadow: 
+            0 4px 18px rgba(0, 0, 0, 0.5),
+            0 0 22px rgba(139, 92, 246, 0.45) !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     .stButton>button:hover {
-        box-shadow: 0 6px 20px rgba(249, 115, 22, 0.55) !important;
-        transform: translateY(-1px) !important;
+        background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%) !important;
+        border-color: rgba(221, 214, 254, 0.6) !important;
+        box-shadow: 
+            0 6px 26px rgba(0, 0, 0, 0.6),
+            0 0 32px rgba(167, 139, 250, 0.65) !important;
+        transform: translateY(-2px) !important;
+        color: #ffffff !important;
+    }
+    .stButton>button:active {
+        transform: translateY(0px) !important;
+        box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4) !important;
     }
     </style>
     """,
