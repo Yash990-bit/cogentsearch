@@ -337,30 +337,31 @@ st.markdown(
     
     /* Buttons — Sleek Violet Gradient with Glowing Violet Neon Shadows */
     .stButton>button {
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%) !important;
+        background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 50%, #7c3aed 100%) !important;
         color: #ffffff !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         font-size: 0.88rem !important;
-        border: 1px solid rgba(196, 181, 253, 0.35) !important;
+        letter-spacing: 0.3px !important;
+        border: 1px solid rgba(216, 180, 254, 0.55) !important;
         border-radius: 10px !important;
         padding: 9px 20px !important;
         box-shadow: 
             0 4px 18px rgba(0, 0, 0, 0.5),
-            0 0 22px rgba(139, 92, 246, 0.45) !important;
+            0 0 24px rgba(168, 85, 247, 0.55) !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     .stButton>button:hover {
-        background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%) !important;
-        border-color: rgba(221, 214, 254, 0.6) !important;
+        background: linear-gradient(135deg, #c084fc 0%, #a855f7 50%, #8b5cf6 100%) !important;
+        border-color: rgba(243, 232, 255, 0.9) !important;
         box-shadow: 
-            0 6px 26px rgba(0, 0, 0, 0.6),
-            0 0 32px rgba(167, 139, 250, 0.65) !important;
+            0 6px 28px rgba(0, 0, 0, 0.6),
+            0 0 35px rgba(192, 132, 252, 0.75) !important;
         transform: translateY(-2px) !important;
         color: #ffffff !important;
     }
     .stButton>button:active {
         transform: translateY(0px) !important;
-        box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4) !important;
+        box-shadow: 0 2px 14px rgba(168, 85, 247, 0.5) !important;
     }
     </style>
     """,
@@ -615,66 +616,23 @@ with st.sidebar:
     st.markdown("---")
     
     # VISUAL PIPELINE INFRASTRUCTURE (Connected Step-by-Step Flow)
-    st.markdown("#### ⚡ Pipeline Architecture Flow")
-    st.markdown(
-        """
-        <div class="v-pipeline-flow">
-            <div class="v-pipe-node">
-                <div class="v-node-num">1</div>
-                <div class="v-node-text">
-                    <div class="v-node-title">Ingest & Parse</div>
-                    <div class="v-node-sub">Docling & LlamaParse (Multi-modality)</div>
-                </div>
-            </div>
-            <div class="v-pipe-arrow">▼</div>
-            
-            <div class="v-pipe-node">
-                <div class="v-node-num">2</div>
-                <div class="v-node-text">
-                    <div class="v-node-title">Hybrid Retrieval</div>
-                    <div class="v-node-sub">⚡ Qdrant (1536d) + 📑 BM25 Okapi</div>
-                </div>
-            </div>
-            <div class="v-pipe-arrow">▼</div>
-
-            <div class="v-pipe-node">
-                <div class="v-node-num">3</div>
-                <div class="v-node-text">
-                    <div class="v-node-title">Rank Fusion</div>
-                    <div class="v-node-sub">🔀 Reciprocal Rank Fusion (RRF k=60)</div>
-                </div>
-            </div>
-            <div class="v-pipe-arrow">▼</div>
-
-            <div class="v-pipe-node">
-                <div class="v-node-num">4</div>
-                <div class="v-node-text">
-                    <div class="v-node-title">Neural Rerank</div>
-                    <div class="v-node-sub">🎯 MiniLM Cross-Encoder Attention</div>
-                </div>
-            </div>
-            <div class="v-pipe-arrow">▼</div>
-
-            <div class="v-pipe-node">
-                <div class="v-node-num">5</div>
-                <div class="v-node-text">
-                    <div class="v-node-title">LangGraph Agent</div>
-                    <div class="v-node-sub">🤖 Self-Correction: Rewriter ➔ Grader</div>
-                </div>
-            </div>
-            <div class="v-pipe-arrow">▼</div>
-
-            <div class="v-pipe-node" style="border-color: rgba(34, 197, 94, 0.4);">
-                <div class="v-node-num" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">6</div>
-                <div class="v-node-text">
-                    <div class="v-node-title" style="color: #86efac;">Cited Generation</div>
-                    <div class="v-node-sub">📷 High-Res Table/Chart Crops</div>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.markdown("#### ⚡ Pipeline Architecture")
+    sidebar_pipe_html = (
+        '<div class="v-pipeline-flow">'
+        '<div class="v-pipe-node"><div class="v-node-num">1</div><div class="v-node-text"><div class="v-node-title">Ingest & Parse</div><div class="v-node-sub">Docling & LlamaParse</div></div></div>'
+        '<div class="v-pipe-arrow">▼</div>'
+        '<div class="v-pipe-node"><div class="v-node-num">2</div><div class="v-node-text"><div class="v-node-title">Hybrid Retrieval</div><div class="v-node-sub">Qdrant 1536d + BM25</div></div></div>'
+        '<div class="v-pipe-arrow">▼</div>'
+        '<div class="v-pipe-node"><div class="v-node-num">3</div><div class="v-node-text"><div class="v-node-title">Rank Fusion</div><div class="v-node-sub">RRF (k=60)</div></div></div>'
+        '<div class="v-pipe-arrow">▼</div>'
+        '<div class="v-pipe-node"><div class="v-node-num">4</div><div class="v-node-text"><div class="v-node-title">Neural Rerank</div><div class="v-node-sub">MiniLM Cross-Encoder</div></div></div>'
+        '<div class="v-pipe-arrow">▼</div>'
+        '<div class="v-pipe-node"><div class="v-node-num">5</div><div class="v-node-text"><div class="v-node-title">LangGraph Agent</div><div class="v-node-sub">Self-Correction Loop</div></div></div>'
+        '<div class="v-pipe-arrow">▼</div>'
+        '<div class="v-pipe-node" style="border-color: rgba(34, 197, 94, 0.5);"><div class="v-node-num" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">6</div><div class="v-node-text"><div class="v-node-title" style="color: #86efac;">Cited Generation</div><div class="v-node-sub">High-Res Table/Chart Crops</div></div></div>'
+        '</div>'
     )
+    st.markdown(sidebar_pipe_html, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🗑️ Reset Chat & Memory", use_container_width=True):
@@ -710,48 +668,22 @@ st.markdown(
 # 4. MOVING PIPELINE ARCHITECTURE FLOW (MAIN VIEW)
 # ------------------------------------------------------------------------------
 with st.expander("⚡ View Moving End-to-End Pipeline Architecture Flow", expanded=True):
-    st.markdown(
-        """
-        <div class="h-pipeline-container">
-            <div class="h-pipe-step">
-                <div class="h-pipe-badge">STAGE 1</div>
-                <div class="h-pipe-title">📂 Document Ingestion</div>
-                <div class="h-pipe-desc">Docling & LlamaParse</div>
-            </div>
-            <div class="h-pipe-arrow">➔</div>
-            <div class="h-pipe-step">
-                <div class="h-pipe-badge">STAGE 2</div>
-                <div class="h-pipe-title">⚡ Dual-Store Retrieval</div>
-                <div class="h-pipe-desc">Qdrant Dense + BM25</div>
-            </div>
-            <div class="h-pipe-arrow">➔</div>
-            <div class="h-pipe-step">
-                <div class="h-pipe-badge">STAGE 3</div>
-                <div class="h-pipe-title">🔀 Reciprocal Fusion</div>
-                <div class="h-pipe-desc">RRF (Constant k=60)</div>
-            </div>
-            <div class="h-pipe-arrow">➔</div>
-            <div class="h-pipe-step">
-                <div class="h-pipe-badge">STAGE 4</div>
-                <div class="h-pipe-title">🎯 Neural Reranking</div>
-                <div class="h-pipe-desc">Cross-Encoder Attention</div>
-            </div>
-            <div class="h-pipe-arrow">➔</div>
-            <div class="h-pipe-step">
-                <div class="h-pipe-badge">STAGE 5</div>
-                <div class="h-pipe-title">🤖 LangGraph Loop</div>
-                <div class="h-pipe-desc">Grader & Self-Correction</div>
-            </div>
-            <div class="h-pipe-arrow">➔</div>
-            <div class="h-pipe-step" style="border-color: rgba(34, 197, 94, 0.45); background: rgba(20, 83, 45, 0.3);">
-                <div class="h-pipe-badge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: rgba(34, 197, 94, 0.4);">STAGE 6</div>
-                <div class="h-pipe-title" style="color: #86efac;">📷 Verified Citations</div>
-                <div class="h-pipe-desc" style="color: #bbf7d0;">Cropped Table/Chart Crops</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    main_pipe_html = (
+        '<div class="h-pipeline-container">'
+        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 1</div><div class="h-pipe-title">📂 Document Ingestion</div><div class="h-pipe-desc">Docling & LlamaParse</div></div>'
+        '<div class="h-pipe-arrow">➔</div>'
+        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 2</div><div class="h-pipe-title">⚡ Dual-Store Retrieval</div><div class="h-pipe-desc">Qdrant Dense + BM25</div></div>'
+        '<div class="h-pipe-arrow">➔</div>'
+        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 3</div><div class="h-pipe-title">🔀 Reciprocal Fusion</div><div class="h-pipe-desc">RRF (Constant k=60)</div></div>'
+        '<div class="h-pipe-arrow">➔</div>'
+        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 4</div><div class="h-pipe-title">🎯 Neural Reranking</div><div class="h-pipe-desc">Cross-Encoder Attention</div></div>'
+        '<div class="h-pipe-arrow">➔</div>'
+        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 5</div><div class="h-pipe-title">🤖 LangGraph Loop</div><div class="h-pipe-desc">Grader & Self-Correction</div></div>'
+        '<div class="h-pipe-arrow">➔</div>'
+        '<div class="h-pipe-step" style="border-color: rgba(34, 197, 94, 0.45); background: rgba(20, 83, 45, 0.3);"><div class="h-pipe-badge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: rgba(34, 197, 94, 0.4);">STAGE 6</div><div class="h-pipe-title" style="color: #86efac;">📷 Verified Citations</div><div class="h-pipe-desc" style="color: #bbf7d0;">Cropped Table/Chart Crops</div></div>'
+        '</div>'
     )
+    st.markdown(main_pipe_html, unsafe_allow_html=True)
 
 # Suggested Query Quick Pills
 st.caption("💡 **Sample Verification Queries:**")
