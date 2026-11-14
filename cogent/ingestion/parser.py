@@ -10,6 +10,7 @@ import io
 import os
 import zipfile
 import hashlib
+import json
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
@@ -536,6 +537,216 @@ class PptxParser(BaseDocumentParser):
         )
 
 
+class AudioTranscriptParser(BaseDocumentParser):
+    """
+    Parser for audio and speech transcripts produced by ASR systems (Whisper, Deepgram, AssemblyAI).
+    Supports structured Whisper JSON (with segment start/end timestamps, confidence, speaker IDs)
+    as well as plain text (.txt), WebVTT (.vtt), and SubRip (.srt) transcript formats.
+    Chunking retains speaker names and temporal interval bounds for line-of-sight audio citations.
+    """
+
+    def parse(self, file_path: Path | str) -> RawParsedDocument:
+        path = Path(file_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Transcript file not found: {path}")
+
+        file_size = path.stat().st_size
+        if file_size == 0:
+            raise EmptyDocumentError(
+                f"Audio transcript file '{path.name}' is empty (0 bytes).",
+                filename=path.name,
+            )
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except UnicodeDecodeError:
+            try:
+                with open(path, "r", encoding="latin-1") as f:
+                    content = f.read()
+            except Exception as e:
+                raise CorruptedDocumentError(
+                    f"Could not read audio transcript file '{path.name}': {e}",
+                    filename=path.name,
+                )
+        except Exception as e:
+            raise CorruptedDocumentError(
+                f"Failed opening audio transcript file '{path.name}': {e}",
+                filename=path.name,
+            )
+
+        if not content.strip():
+            raise EmptyDocumentError(
+                f"Audio transcript file '{path.name}' is empty (blank content).",
+                filename=path.name,
+            )
+
+        suffix = path.suffix.lower()
+        page_texts: Dict[int, str] = {}
+        page_headers: Dict[int, List[str]] = {}
+        metadata: Dict[str, Any] = {"modality": "audio_transcript", "format": suffix}
+
+        if suffix == ".json":
+            try:
+                data = json.loads(content)
+            except Exception as e:
+                raise CorruptedDocumentError(
+                    f"Corrupted or invalid JSON in audio transcript '{path.name}': {e}",
+                    filename=path.name,
+                )
+            page_texts, page_headers, meta = self._parse_json_transcript(data)
+            metadata.update(meta)
+        else:
+            page_texts, page_headers = self._parse_text_transcript(content)
+
+        if not page_texts or all(len(t.strip()) == 0 for t in page_texts.values()):
+            raise EmptyDocumentError(
+                f"No textual transcript utterances found in '{path.name}'.",
+                filename=path.name,
+            )
+
+        file_bytes = path.read_bytes()
+        doc_id = hashlib.sha256(
+            file_bytes[:65536] + str(file_size).encode() + file_bytes[-4096:]
+        ).hexdigest()[:12]
+        return RawParsedDocument(
+            document_id=doc_id,
+            filename=path.name,
+            file_path=str(path.resolve()),
+            file_type="transcript",
+            total_pages=len(page_texts),
+            page_texts=page_texts,
+            page_headers=page_headers,
+            visual_elements=[],
+            raw_metadata=metadata,
+        )
+
+    @staticmethod
+    def _format_time(sec: float | int) -> str:
+        sec = max(0.0, float(sec))
+        m = int(sec // 60)
+        s = int(sec % 60)
+        h = int(m // 60)
+        m = int(m % 60)
+        if h > 0:
+            return f"{h:02d}:{m:02d}:{s:02d}"
+        return f"{m:02d}:{s:02d}"
+
+    def _parse_json_transcript(
+        self, data: Any
+    ) -> Tuple[Dict[int, str], Dict[int, List[str]], Dict[str, Any]]:
+        page_texts: Dict[int, str] = {}
+        page_headers: Dict[int, List[str]] = {}
+        meta: Dict[str, Any] = {}
+
+        segments: List[Dict[str, Any]] = []
+        if isinstance(data, list):
+            segments = [item for item in data if isinstance(item, dict)]
+        elif isinstance(data, dict):
+            if "segments" in data and isinstance(data["segments"], list):
+                segments = data["segments"]
+                meta["model"] = data.get("model", "whisper")
+                meta["duration"] = data.get("duration")
+            elif "utterances" in data and isinstance(data["utterances"], list):
+                segments = data["utterances"]
+            elif (
+                "results" in data
+                and isinstance(data["results"], dict)
+                and "transcripts" in data["results"]
+            ):
+                transcripts = data["results"]["transcripts"]
+                full_txt = " ".join(t.get("transcript", "") for t in transcripts)
+                return {1: full_txt}, {1: ["Audio Transcript"]}, meta
+
+        if not segments:
+            fallback_text = ""
+            if isinstance(data, dict):
+                fallback_text = (
+                    data.get("text", "") or data.get("transcript", "") or str(data)
+                )
+            else:
+                fallback_text = str(data)
+            p_texts, p_headers = self._parse_text_transcript(fallback_text)
+            return p_texts, p_headers, meta
+
+        # Group segments into temporal pages (~5-8 utterances or ~250 words per page)
+        curr_page = 1
+        curr_lines: List[str] = []
+        curr_speakers = set()
+        block_start = None
+        block_end = None
+        words_count = 0
+
+        for seg in segments:
+            text = (seg.get("text") or seg.get("transcript") or "").strip()
+            if not text:
+                continue
+            start = seg.get("start", 0.0)
+            end = seg.get("end", start + 2.0)
+            speaker = seg.get("speaker") or seg.get("speaker_id") or "Speaker"
+
+            if block_start is None:
+                block_start = start
+            block_end = end
+            curr_speakers.add(speaker)
+
+            timestamp_str = f"[{self._format_time(start)} - {self._format_time(end)}]"
+            curr_lines.append(f"{timestamp_str} {speaker}: {text}")
+            words_count += len(text.split())
+
+            if words_count >= 250 or len(curr_lines) >= 8:
+                page_texts[curr_page] = "\n".join(curr_lines)
+                header_info = f"Audio Segment {curr_page} ({self._format_time(block_start)} - {self._format_time(block_end)})"
+                speakers_info = f"Speakers: {', '.join(sorted(curr_speakers))}"
+                page_headers[curr_page] = [header_info, speakers_info]
+
+                curr_page += 1
+                curr_lines = []
+                curr_speakers = set()
+                block_start = None
+                block_end = None
+                words_count = 0
+
+        if curr_lines:
+            page_texts[curr_page] = "\n".join(curr_lines)
+            header_info = f"Audio Segment {curr_page} ({self._format_time(block_start or 0)} - {self._format_time(block_end or 0)})"
+            speakers_info = (
+                f"Speakers: {', '.join(sorted(curr_speakers))}"
+                if curr_speakers
+                else "Audio Transcript"
+            )
+            page_headers[curr_page] = [header_info, speakers_info]
+
+        return page_texts, page_headers, meta
+
+    def _parse_text_transcript(
+        self, content: str
+    ) -> Tuple[Dict[int, str], Dict[int, List[str]]]:
+        lines = [line.strip() for line in content.splitlines() if line.strip()]
+        page_texts: Dict[int, str] = {}
+        page_headers: Dict[int, List[str]] = {}
+
+        curr_page = 1
+        curr_chunk: List[str] = []
+        words_count = 0
+
+        for line in lines:
+            curr_chunk.append(line)
+            words_count += len(line.split())
+            if words_count >= 250 or len(curr_chunk) >= 12:
+                page_texts[curr_page] = "\n".join(curr_chunk)
+                page_headers[curr_page] = [f"Transcript Segment {curr_page}"]
+                curr_page += 1
+                curr_chunk = []
+                words_count = 0
+
+        if curr_chunk:
+            page_texts[curr_page] = "\n".join(curr_chunk)
+            page_headers[curr_page] = [f"Transcript Segment {curr_page}"]
+
+        return page_texts, page_headers
+
+
 class LlamaParseAdapter(BaseDocumentParser):
     """
     Provider-agnostic adapter for LlamaParse (LlamaCloud multimodal parser).
@@ -629,9 +840,11 @@ class UniversalParserFactory:
             return DocxParser()
         elif suffix in [".pptx", ".ppt"]:
             return PptxParser()
+        elif suffix in [".txt", ".json", ".vtt", ".srt"]:
+            return AudioTranscriptParser()
         else:
             raise UnsupportedFormatError(
                 f"Unsupported document format '{suffix}' for file '{Path(file_path).name}'. "
-                f"Supported formats: .pdf, .docx, .pptx",
+                f"Supported formats: .pdf, .docx, .pptx, .txt, .json, .vtt, .srt",
                 filename=Path(file_path).name,
             )

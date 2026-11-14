@@ -377,6 +377,51 @@ def generate_corpus():
             "expected_tables": 1 if k % 2 == 0 else 0,
         })
 
+    # Doc 23: Whisper ASR Audio Transcript (JSON)
+    audio_json_path = CORPUS_DIR / "doc_23_whisper_earnings_call.json"
+    audio_data = {
+        "model": "whisper-large-v3",
+        "language": "en",
+        "duration": 480.0,
+        "text": "Welcome to the CogentSearch Q3 Financial and Strategic Review call.",
+        "segments": [
+            {"id": 0, "start": 0.0, "end": 14.5, "text": "Good morning and welcome to the CogentSearch Q3 Strategic & Financial Review call.", "speaker": "CEO"},
+            {"id": 1, "start": 15.0, "end": 35.2, "text": "In the third quarter, our Annual Recurring Revenue (ARR) accelerated to $48.5 million, up 34% YoY.", "speaker": "CEO"},
+            {"id": 2, "start": 36.0, "end": 58.0, "text": "Enterprise customer retention remained exceptional with a Net Dollar Retention (NDR) rate of 128%.", "speaker": "CEO"},
+            {"id": 3, "start": 59.0, "end": 82.5, "text": "Turning to our infrastructure efficiency, gross margins improved to 82.4% with hybrid Qdrant retrieval.", "speaker": "CFO"},
+            {"id": 4, "start": 83.0, "end": 105.0, "text": "Operating cash flow for the quarter was positive at $12.3 million with zero long-term debt.", "speaker": "CFO"},
+            {"id": 5, "start": 106.0, "end": 132.0, "text": "For the full fiscal year 2026, we are raising revenue guidance to between $192 million and $198 million.", "speaker": "CFO"}
+        ]
+    }
+    with open(audio_json_path, "w", encoding="utf-8") as f:
+        json.dump(audio_data, f, indent=2)
+    manifest["documents"].append({
+        "filename": "doc_23_whisper_earnings_call.json",
+        "category": "audio_transcript",
+        "expected_pages": 1,
+        "expected_format": "json",
+        "expected_images": 0,
+        "expected_tables": 0,
+    })
+
+    # Doc 24: Audio Meeting Transcript (TXT)
+    audio_txt_path = CORPUS_DIR / "doc_24_audio_meeting_transcript.txt"
+    audio_txt_content = (
+        "[00:00:05] Product Lead: Welcome everyone to the sprint planning session for CogentSearch.\n"
+        "[00:00:25] Engineering Lead: We have completed hybrid BM25 and Qdrant integration with RRF at k=60.\n"
+        "[00:00:52] ML Engineer: Cross-encoder latency is down to 42 milliseconds per query using MiniLM-L-6-v2.\n"
+        "[00:01:20] QA Lead: All integration and adversarial tests are passing with full audio transcript ingestion.\n"
+    )
+    audio_txt_path.write_text(audio_txt_content, encoding="utf-8")
+    manifest["documents"].append({
+        "filename": "doc_24_audio_meeting_transcript.txt",
+        "category": "audio_transcript",
+        "expected_pages": 1,
+        "expected_format": "txt",
+        "expected_images": 0,
+        "expected_tables": 0,
+    })
+
     # Adversarial Edge Cases
     # Empty PDF (0 bytes)
     empty_path = CORPUS_DIR / "adv_empty.pdf"

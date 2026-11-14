@@ -401,15 +401,15 @@ if "messages" not in st.session_state:
             "content": (
                 "### ⚡ CogentSearch Autonomous Agent Online\n"
                 "I am **CogentSearch**, an enterprise-grade **Multimodal Agentic Document Search & Reasoning Engine**. "
-                "I parse, index, and reason across heterogeneous corporate documents — including multi-page PDFs, complex financial tables, trend charts, slide presentations (`.pptx`), and structured reports (`.docx`) — providing strict line-of-sight page citations and cropped visual evidence.\n\n"
+                "I parse, index, and reason across heterogeneous corporate data streams — including multi-page PDFs, complex financial tables, trend charts, slide presentations (`.pptx`), structured reports (`.docx`), and **Whisper / ASR audio meeting transcripts (`.json`, `.txt`)** — providing strict line-of-sight page/timestamp citations and cropped visual evidence.\n\n"
                 "#### 🤖 Agentic Capabilities:\n"
                 "- **Autonomous LangGraph State Machine:** Self-correcting loop (`Query Rewrite` ➔ `Hybrid Retrieve` ➔ `Grade Evidence` ➔ `Synthesize Cited Answer`).\n"
                 "- **Dual-Engine Hybrid Retrieval:** High-dimensional semantic search (**Qdrant Cosine 1536d**) combined with lexical keyword matching (**BM25 Okapi**), fused via Reciprocal Rank Fusion (**RRF $k=60$**).\n"
                 "- **Deep Neural Reranking:** Precision reranking using a **MiniLM Cross-Encoder** attention mechanism to eliminate semantic distractors.\n"
-                "- **Multimodal Visual Provenance:** Automatic extraction of pixel-accurate bounding box crops for tables, graphs, and figures alongside exact page references.\n\n"
+                "- **Multimodal Visual & Audio Provenance:** Automatic extraction of pixel-accurate bounding box crops for visual figures alongside exact timestamp and speaker citations for audio transcripts.\n\n"
                 "#### 🚀 Quick Start Guide:\n"
-                "1. Click **📂 Preload Enterprise Corpus** in the sidebar to benchmark across enterprise financial statements, architecture charts, and deck slides.\n"
-                "2. Or drag-and-drop your custom `.pdf`, `.docx`, or `.pptx` documents into the uploader.\n"
+                "1. Click **📂 Preload Enterprise Corpus** in the sidebar to benchmark across enterprise financial statements, architecture charts, slides, and executive audio transcripts.\n"
+                "2. Or drag-and-drop your custom `.pdf`, `.docx`, `.pptx`, `.txt`, or `.json` documents into the uploader.\n"
                 "3. Select one of the verification prompt pills above or type any analytical question below."
             ),
             "citations": [],
@@ -469,10 +469,10 @@ with st.sidebar:
 
     st.markdown("#### 📂 Ingestion Pipeline")
     uploaded_files = st.file_uploader(
-        "Upload Documents",
-        type=["pdf", "docx", "pptx"],
+        "Upload Documents & Transcripts",
+        type=["pdf", "docx", "pptx", "txt", "json"],
         accept_multiple_files=True,
-        help="Upload multi-page PDFs, Word documents (.docx), or slide decks (.pptx).",
+        help="Upload multi-page PDFs, Word documents (.docx), slide decks (.pptx), or audio transcripts (.txt, .json).",
     )
 
     if uploaded_files:
@@ -512,6 +512,7 @@ with st.sidebar:
             CORPUS_DIR / "doc_04_charts_diagrams.pdf",
             CORPUS_DIR / "doc_05_nested_report.docx",
             CORPUS_DIR / "doc_06_slides_20plus.pptx",
+            CORPUS_DIR / "doc_23_whisper_earnings_call.json",
         ]
         available = [f for f in sample_files if f.exists()]
         if available:
@@ -576,7 +577,7 @@ st.markdown(
             and pixel-level line-of-sight table and chart visual provenance.
         </div>
         <div class="rag-status-bar">
-            <div class="rag-pill"><span></span> Ingestion: Docling & LlamaParse</div>
+            <div class="rag-pill"><span></span> Ingestion: Docling, LlamaParse & Whisper ASR</div>
             <div class="rag-pill"><span></span> Dense Store: Qdrant Cosine (1536d)</div>
             <div class="rag-pill"><span></span> Lexical: BM25 Okapi Engine</div>
             <div class="rag-pill"><span></span> Fusion: RRF (Constant k=60)</div>
@@ -611,16 +612,19 @@ with st.expander("⚡ View Moving End-to-End Pipeline Architecture Flow", expand
 
 # Suggested Query Quick Pills
 st.caption("💡 **Sample Verification Queries:**")
-q_col1, q_col2, q_col3 = st.columns(3)
+q_col1, q_col2, q_col3, q_col4 = st.columns(4)
 sample_query = None
 with q_col1:
-    if st.button("📊 Extract Quarterly Financial Table", use_container_width=True):
+    if st.button("📊 Financial Tables", use_container_width=True):
         sample_query = "What are the financial metrics and revenue figures in the quarterly report table?"
 with q_col2:
-    if st.button("📈 Latency Benchmark Charts", use_container_width=True):
+    if st.button("📈 Benchmark Charts", use_container_width=True):
         sample_query = "What are the latency benchmarks and system throughput metrics shown in the chart?"
 with q_col3:
-    if st.button("🏗️ System Architecture & Clusters", use_container_width=True):
+    if st.button("🎙️ Audio Transcript", use_container_width=True):
+        sample_query = "What were the key financial metrics, ARR growth, and margin improvements discussed in the executive earnings call transcript?"
+with q_col4:
+    if st.button("🏗️ Architecture & Clusters", use_container_width=True):
         sample_query = "Explain the system architecture specifications and cluster configurations."
 
 # Render Chat History

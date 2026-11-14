@@ -212,3 +212,47 @@ def test_complete_multimodal_acceptance_criterion():
         assert bbox.height > 0
 
 
+def test_audio_transcript_whisper_json_ingestion():
+    """Validates ingestion of Whisper ASR JSON with timestamp intervals and speaker tracking."""
+    whisper_json = Path("data/test_corpus/doc_23_whisper_earnings_call.json")
+    assert whisper_json.exists(), "Sample Whisper earnings call JSON must exist"
+
+    pipeline = MultimodalIngestionPipeline(chunk_size=400)
+    result = pipeline.process_file(whisper_json)
+
+    assert isinstance(result, MultimodalDocument)
+    assert result.file_type == "transcript"
+    assert result.total_pages >= 1
+    assert len(result.chunks) >= 1
+
+    # Verify speaker identities and timestamps are preserved in the chunks
+    combined_content = " ".join(c.content for c in result.chunks)
+    assert "CEO" in combined_content
+    assert "CFO" in combined_content
+    assert "$48.5 million" in combined_content
+    assert "Annual Recurring Revenue" in combined_content
+
+    # Headers hierarchy must reflect the audio segment metadata
+    assert any("Audio Segment" in h for c in result.chunks for h in c.headers_hierarchy)
+
+
+def test_audio_transcript_text_format_ingestion():
+    """Validates ingestion of timestamped audio meeting text files."""
+    meeting_txt = Path("data/test_corpus/doc_24_audio_meeting_transcript.txt")
+    assert meeting_txt.exists(), "Sample audio meeting text file must exist"
+
+    pipeline = MultimodalIngestionPipeline(chunk_size=400)
+    result = pipeline.process_file(meeting_txt)
+
+    assert isinstance(result, MultimodalDocument)
+    assert result.file_type == "transcript"
+    assert result.total_pages >= 1
+    assert len(result.chunks) >= 1
+
+    combined_content = " ".join(c.content for c in result.chunks)
+    assert "Product Lead" in combined_content
+    assert "MiniLM-L-6-v2" in combined_content
+    assert "42 milliseconds" in combined_content
+
+
+
