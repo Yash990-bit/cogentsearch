@@ -33,8 +33,10 @@ langchain-community>=0.2.0
 langgraph>=0.0.60
 ragas>=0.1.8
 
-# UI & Utilities
+# UI, API & Utilities
 streamlit>=1.35.0
+fastapi>=0.110.0
+uvicorn>=0.29.0
 pandas>=2.2.0
 openpyxl>=3.1.2
 pytest>=8.2.0
