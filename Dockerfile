@@ -30,3 +30,4 @@ EXPOSE 8000 8501
 
 # Default entrypoint starts Streamlit UI (can be overridden to uvicorn in docker-compose)
 CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+

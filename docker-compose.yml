@@ -1,6 +1,16 @@
 version: '3.8'
 
 services:
+  # Redis Key-Value & Semantic Cache
+  redis:
+    image: redis:7-alpine
+    container_name: cogentsearch-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
   # CogentSearch FastAPI REST & SSE Streaming Backend
   api:
     build: .
@@ -11,6 +21,10 @@ services:
     environment:
       - OFFLINE_MODE=True
       - LLM_TEMPERATURE=0.0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
     restart: unless-stopped
     volumes:
       - ./data:/app/data
@@ -25,8 +39,16 @@ services:
     environment:
       - OFFLINE_MODE=True
       - API_BASE_URL=http://api:8000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       - api
+      - redis
     restart: unless-stopped
     volumes:
       - ./data:/app/data
+
+volumes:
+  redis_data:
+
+

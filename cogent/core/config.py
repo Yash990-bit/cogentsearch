@@ -60,6 +60,15 @@ class Settings(BaseSettings):
     RRF_K: int = 60
     CROSS_ENCODER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
+    # Redis & Cache Settings (Resume Tech Stack & Latency Optimization)
+    REDIS_ENABLED: bool = True
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+    REDIS_PASSWORD: str = ""
+    CACHE_TTL_SECONDS: int = 3600
+    CACHE_NAMESPACE: str = "cogent:cache"
+
     # Ingestion & Extraction Options
     DPI_SCALE: float = Field(default=2.5, description="Scale factor for high-resolution bounding box crops")
     MIN_IMAGE_WIDTH: int = Field(default=60, description="Minimum pixel width to treat as a meaningful visual element")

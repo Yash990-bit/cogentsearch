@@ -14,7 +14,9 @@ from cogent.agent.state import AgentState, CitationItem
 from cogent.retrieval.hybrid_retriever import HybridRetriever
 from cogent.vectorstore.qdrant_store import QdrantVectorStore
 from cogent.retrieval.bm25_retriever import BM25Retriever
+from cogent.cache.redis_cache import RedisQueryCache
 from cogent.core.config import settings
+import time
 
 
 class AgenticResponse(BaseModel):
@@ -29,6 +31,9 @@ class AgenticResponse(BaseModel):
     web_search_used: bool
     retry_count: int
     trace: List[str]
+    cache_hit: bool = False
+    cache_backend: Optional[str] = None
+    cache_latency_ms: Optional[float] = None
 
 
 class AgenticRAG:
@@ -41,6 +46,7 @@ class AgenticRAG:
         hybrid_retriever: Optional[HybridRetriever] = None,
         llm: Optional[Any] = None,
         max_retries: int = 2,
+        cache: Optional[RedisQueryCache] = None,
     ):
         if hybrid_retriever is None:
             logger.info("Initializing default HybridRetriever for AgenticRAG...")
@@ -50,16 +56,29 @@ class AgenticRAG:
 
         self.hybrid_retriever = hybrid_retriever
         self.max_retries = max_retries
+        self.cache = cache if cache is not None else RedisQueryCache()
         self.app = build_agentic_rag_graph(
             hybrid_retriever=self.hybrid_retriever,
             llm=llm,
             max_retries=max_retries,
         )
 
-    def run(self, question: str) -> AgenticResponse:
+    def run(self, question: str, use_cache: bool = True) -> AgenticResponse:
         """
         Executes the LangGraph loop for a given user question and returns an AgenticResponse.
+        Leverages Redis / In-Memory caching for sub-millisecond retrieval on repeat queries.
         """
+        # Check cache hit first
+        if use_cache and self.cache:
+            start_t = time.perf_counter()
+            cached = self.cache.get(question)
+            if cached:
+                cached["cache_hit"] = True
+                cached["cache_backend"] = self.cache.backend
+                cached["cache_latency_ms"] = round((time.perf_counter() - start_t) * 1000.0, 2)
+                logger.info(f"⚡ Returning cached response ({self.cache.backend}) in {cached['cache_latency_ms']}ms")
+                return AgenticResponse(**cached)
+
         initial_state: AgentState = {
             "question": question,
             "rewritten_query": "",
@@ -80,7 +99,7 @@ class AgenticRAG:
 
         citations = [CitationItem(**c) for c in final_state.get("citations", [])]
 
-        return AgenticResponse(
+        response = AgenticResponse(
             question=final_state["question"],
             rewritten_query=final_state.get("rewritten_query", ""),
             generation=final_state.get("generation", ""),
@@ -90,5 +109,12 @@ class AgenticRAG:
             web_search_used=final_state.get("web_search_needed", False),
             retry_count=final_state.get("retry_count", 0),
             trace=final_state.get("trace", []),
+            cache_hit=False,
+            cache_backend=self.cache.backend if self.cache else None,
         )
+
+        if use_cache and self.cache:
+            self.cache.set(question, response.model_dump())
+
+        return response
 
