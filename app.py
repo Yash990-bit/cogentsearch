@@ -620,8 +620,11 @@ with st.sidebar:
 
     if st.session_state.indexed_files:
         st.caption("**Indexed Files:**")
-        for fn in sorted(st.session_state.indexed_files):
-            st.markdown(f"- `<span style='color: #a1a1aa; font-family: JetBrains Mono, monospace; font-size: 0.74rem;'>{fn}</span>`", unsafe_allow_html=True)
+        files_html = "".join(
+            f"<div style='color: #a1a1aa; font-family: JetBrains Mono, monospace; font-size: 0.74rem; padding: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>• {fn}</div>"
+            for fn in sorted(st.session_state.indexed_files)
+        )
+        st.markdown(files_html, unsafe_allow_html=True)
 
     st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
     if st.button("Reset Session", use_container_width=True):
