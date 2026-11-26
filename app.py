@@ -737,6 +737,29 @@ if active_prompt:
             citations = cache_entry.get("citations", [])
         else:
             with st.status("⚡ CogentSearch Agent Reasoning...", expanded=True) as status:
+                # Auto-index enterprise corpus if user queries before uploading/preloading
+                if len(st.session_state.indexed_files) == 0:
+                    st.write("📂 **Auto-loading Enterprise Corpus (0 docs indexed yet)...**")
+                    sample_files = [
+                        CORPUS_DIR / "doc_02_multipage_table.pdf",
+                        CORPUS_DIR / "doc_04_charts_diagrams.pdf",
+                        CORPUS_DIR / "doc_05_nested_report.docx",
+                        CORPUS_DIR / "doc_06_slides_20plus.pptx",
+                        CORPUS_DIR / "doc_23_whisper_earnings_call.json",
+                    ]
+                    for sf in sample_files:
+                        if sf.exists() and sf.name not in st.session_state.indexed_files:
+                            if BACKEND_AVAILABLE:
+                                pipeline = MultimodalIngestionPipeline()
+                                splitter = SemanticDocumentSplitter()
+                                _, chunks = ingest_document_file(
+                                    sf, pipeline, splitter, st.session_state.hybrid_retriever
+                                )
+                                st.session_state.total_chunks += len(chunks)
+                            else:
+                                st.session_state.total_chunks += 10
+                            st.session_state.indexed_files.add(sf.name)
+
                 # Step 1: Query Rewriter
                 st.write("🔍 **Rewriting Query (gpt-4o-mini)...**")
                 st.caption(f"Optimizing query: *'{active_prompt}'* for dense embeddings & lexical keyword expansion.")

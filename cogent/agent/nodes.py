@@ -369,11 +369,14 @@ class AgentNodes:
 
         if not web_results:
             web_results.append({
-                "title": f"[SIMULATED OFFLINE FALLBACK] Public Knowledge on {query[:30]}",
-                "source": "simulated_offline_fallback",
+                "title": f"Offline Web Fallback ({query[:30]})",
+                "source": "offline_web_fallback",
                 "page": 1,
                 "type": "Web",
-                "content": f"[SIMULATED OFFLINE FALLBACK] No live internet connection available. Synthetic mock reference for '{query}': specification parameters and public reference.",
+                "content": (
+                    f"No matching internal evidence was found for '{query}', and live web search is disabled in offline mode. "
+                    f"Upload relevant PDFs, DOCX, PPTX, or audio transcripts (or click 'Preload Enterprise Corpus') to retrieve grounded citations."
+                ),
             })
 
         logger.info(f"Web search retrieved {len(web_results)} external documents.")
