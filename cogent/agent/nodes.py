@@ -458,6 +458,18 @@ class AgentNodes:
 
         gen_llm = self._generator_llm or self._llm
         citations = []
+        # Detect Groq backend — Groq rejects Pydantic structured output schemas
+        # with Optional[Dict] (anyOf without additionalProperties:false).
+        # For Groq we use plain text generation + citation extraction instead.
+        _is_groq = False
+        if gen_llm is not None:
+            _base_url = getattr(gen_llm, "openai_api_base", "") or ""
+            if not _base_url:
+                _client = getattr(gen_llm, "client", None)
+                if _client:
+                    _base_url = str(getattr(_client, "base_url", ""))
+            _is_groq = "groq" in _base_url.lower()
+
         if gen_llm is not None:
             try:
                 from langchain_core.messages import SystemMessage, HumanMessage
@@ -472,8 +484,13 @@ class AgentNodes:
                         )
                     ),
                 ]
-                # Force Pydantic structured outputs via OpenAI's function calling / structured outputs
-                if hasattr(gen_llm, "with_structured_output"):
+                # For Groq: skip structured output, use plain text + citation parsing
+                # For OpenAI-native: use Pydantic structured outputs via function calling
+                if _is_groq:
+                    logger.info("Groq LPU detected — using plain text generation with citation extraction.")
+                    answer = gen_llm.invoke(messages).content.strip()
+                    citations = self._extract_citations(answer, documents, web_docs)
+                elif hasattr(gen_llm, "with_structured_output"):
                     structured_llm = gen_llm.with_structured_output(GeneratorStructuredOutput)
                     structured_res = structured_llm.invoke(messages)
                     if isinstance(structured_res, GeneratorStructuredOutput):
