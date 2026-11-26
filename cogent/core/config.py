@@ -45,8 +45,8 @@ class Settings(BaseSettings):
     GRADER_MODEL_NAME: str = "gpt-4o-mini"
     GENERATOR_MODEL_NAME: str = "gpt-4o"
     GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
-    GROQ_FAST_MODEL: str = "llama-3.1-8b-instant"
-    GROQ_GENERATOR_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_FAST_MODEL: str = "openai/gpt-oss-20b"
+    GROQ_GENERATOR_MODEL: str = "openai/gpt-oss-120b"
     LLM_TEMPERATURE: float = 0.0
     MAX_REWRITE_RETRIES: int = 2
     WEB_SEARCH_ENABLED: bool = True

@@ -599,7 +599,7 @@ with st.sidebar:
     from cogent.core.config import settings as cogent_settings
     cache_backend = st.session_state.query_cache.backend.upper() if "query_cache" in st.session_state else "MEMORY"
     cache_hits = st.session_state.query_cache.hits if "query_cache" in st.session_state else 0
-    llm_mode = "Groq Llama-3.3" if getattr(cogent_settings, "GROQ_API_KEY", "") else ("OpenAI GPT-4o" if cogent_settings.OPENAI_API_KEY else "Offline Mode")
+    llm_mode = "Groq GPT-OSS-120B" if getattr(cogent_settings, "GROQ_API_KEY", "") else ("OpenAI GPT-4o" if cogent_settings.OPENAI_API_KEY else "Offline Mode")
     st.markdown(
         f"""
         <div class="metric-grid">
