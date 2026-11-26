@@ -9,6 +9,10 @@
 
 **CogentSearch** is an enterprise-grade, multimodal agentic document intelligence system built from scratch in Python. It solves the critical bottleneck of enterprise document discovery: **reasoning and retrieving grounded facts trapped in complex tables, trend charts, architectural diagrams, multi-page slide decks, Word reports, and Whisper ASR audio transcripts** with strict pixel-level line-of-sight visual citations and zero hallucinations.
 
+<p align="center">
+  <img src="assets/cogentsearch_ui.png" alt="CogentSearch Enterprise UI" width="100%" />
+</p>
+
 ---
 
 ## 🔒 100% Zero-API-Key Offline-First Architecture
