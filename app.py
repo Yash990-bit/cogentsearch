@@ -36,193 +36,244 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Enterprise Styling with Ambient Orange Glow & Glassmorphism
+# Custom Enterprise Styling — Linear / Perplexity / Vercel Obsidian & Zinc-950 Design System
 st.markdown(
     """
     <style>
     /* Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-    /* Global Dark Backdrop with Ambient Indigo/Violet Glow */
-    .stApp {
-        background-color: #07090e;
-        background-image: 
-            radial-gradient(circle at 80% 8%, rgba(99, 102, 241, 0.10) 0%, transparent 45%),
-            radial-gradient(circle at 15% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
-            linear-gradient(180deg, #090d16 0%, #05070b 100%);
-        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-        color: #f1f5f9;
+    /* Root Variables */
+    :root {
+        --bg-canvas: #09090b;
+        --bg-sidebar: #0c0c0f;
+        --bg-surface: #121216;
+        --bg-surface-hover: #18181d;
+        --border-subtle: rgba(255, 255, 255, 0.08);
+        --border-hover: rgba(99, 102, 241, 0.45);
+        --text-primary: #fafafa;
+        --text-secondary: #a1a1aa;
+        --text-muted: #71717a;
+        --accent-indigo: #6366f1;
     }
 
-    /* Executive Hero Header */
-    .hero-container {
-        background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(99, 102, 241, 0.25);
-        border-radius: 16px;
-        padding: 24px 30px;
-        margin-bottom: 24px;
-        box-shadow: 
-            0 10px 30px -10px rgba(0, 0, 0, 0.7),
-            0 0 25px -5px rgba(99, 102, 241, 0.18);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .hero-container::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #6366f1, #a855f7, transparent);
+    /* Global Canvas & Typography */
+    html, body, [class*="css"], .stApp {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        color: var(--text-primary);
     }
 
-    .hero-title {
-        font-size: 2.2rem;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        background: linear-gradient(135deg, #ffffff 35%, #e0e7ff 70%, #c084fc 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0;
+    .stApp, [data-testid="stAppViewContainer"] {
+        background-color: var(--bg-canvas) !important;
+        background-image: radial-gradient(ellipse 80% 50% at 50% -15%, rgba(99, 102, 241, 0.10), transparent) !important;
     }
 
-    .hero-subtitle {
-        font-size: 0.96rem;
-        color: #94a3b8;
-        max-width: 860px;
-        line-height: 1.6;
-        margin-top: 6px;
+    /* Hide Streamlit Default Chrome (Deploy button, Hamburger, Footer) */
+    [data-testid="stToolbar"] {
+        visibility: hidden !important;
+        height: 0 !important;
+    }
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        height: 2.5rem !important;
+    }
+    #MainMenu, footer {
+        visibility: hidden !important;
     }
 
-    /* Enterprise Pill Badges */
-    .rag-status-bar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 14px;
+    /* Unified Sidebar (Kill Default #262730 Gray) */
+    [data-testid="stSidebar"] {
+        background-color: var(--bg-sidebar) !important;
+        border-right: 1px solid var(--border-subtle) !important;
+    }
+    [data-testid="stSidebar"] > div:first-child {
+        background-color: var(--bg-sidebar) !important;
+        padding-top: 1.5rem !important;
     }
 
-    .rag-pill {
+    /* Unified Bottom Chat Input Bar (Kill Default #262730 Gray) */
+    [data-testid="stBottom"],
+    [data-testid="stBottom"] > div,
+    [data-testid="stBottomBlockContainer"] {
+        background-color: var(--bg-canvas) !important;
+        background-image: linear-gradient(180deg, rgba(9, 9, 11, 0) 0%, #09090b 25%) !important;
+        border-top: none !important;
+    }
+    [data-testid="stChatInput"] {
+        background-color: var(--bg-surface) !important;
+        border: 1px solid rgba(255, 255, 255, 0.11) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45) !important;
+    }
+    [data-testid="stChatInput"]:focus-within {
+        border-color: rgba(99, 102, 241, 0.6) !important;
+        box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35), 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+    }
+    [data-testid="stChatInput"] textarea {
+        color: var(--text-primary) !important;
+        font-size: 0.92rem !important;
+    }
+    [data-testid="stChatInput"] button {
+        background-color: #4f46e5 !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+    }
+
+    /* File Uploader Dropzone */
+    [data-testid="stFileUploaderDropzone"] {
+        background-color: var(--bg-surface) !important;
+        border: 1px dashed rgba(255, 255, 255, 0.14) !important;
+        border-radius: 10px !important;
+        padding: 14px !important;
+    }
+    [data-testid="stFileUploaderDropzone"]:hover {
+        border-color: rgba(99, 102, 241, 0.5) !important;
+        background-color: var(--bg-surface-hover) !important;
+    }
+
+    /* Minimalist Hero Header */
+    .hero-minimal {
+        padding: 8px 0 18px 0;
+        margin-bottom: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+    .hero-eyebrow {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: rgba(30, 41, 59, 0.65);
-        border: 1px solid rgba(99, 102, 241, 0.2);
-        color: #e2e8f0;
-        padding: 5px 12px;
-        border-radius: 8px;
-        font-size: 0.8rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
         font-weight: 500;
-    }
-    .rag-pill span {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background-color: #10b981;
-        box-shadow: 0 0 8px #10b981;
-    }
-
-    /* Horizontal Architecture Flow Pipeline (Main View) */
-    .h-pipeline-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: rgba(15, 23, 42, 0.65);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #a5b4fc;
+        background: rgba(99, 102, 241, 0.10);
         border: 1px solid rgba(99, 102, 241, 0.22);
-        border-radius: 14px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
-        overflow-x: auto;
-        gap: 8px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(99, 102, 241, 0.1);
+        padding: 3px 10px;
+        border-radius: 999px;
+        margin-bottom: 10px;
+    }
+    .hero-eyebrow-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 6px #10b981;
+    }
+    .hero-title {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: #fafafa;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .hero-subtitle {
+        font-size: 0.94rem;
+        color: var(--text-secondary);
+        max-width: 760px;
+        line-height: 1.55;
+        margin-top: 6px;
     }
 
-    .h-pipe-step {
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(148, 163, 184, 0.15);
+    /* Responsive 6-Column Pipeline Grid (Zero Clipping) */
+    .h-pipeline-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+        padding: 4px 0;
+    }
+    @media (max-width: 1100px) {
+        .h-pipeline-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+    .h-pipe-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
         border-radius: 10px;
-        padding: 10px 14px;
-        min-width: 145px;
-        text-align: center;
-        transition: all 0.25s ease;
-        flex-shrink: 0;
+        padding: 12px 10px;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
     }
-    .h-pipe-step:hover {
-        border-color: #818cf8;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+    .h-pipe-card:hover {
+        border-color: var(--border-hover);
+        background: var(--bg-surface-hover);
     }
-    .h-pipe-badge {
-        font-size: 0.65rem;
-        font-weight: 800;
-        background: rgba(99, 102, 241, 0.2);
-        color: #c7d2fe;
-        border: 1px solid rgba(99, 102, 241, 0.4);
-        padding: 2px 6px;
-        border-radius: 4px;
-        display: inline-block;
+    .h-pipe-step-num {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.66rem;
+        font-weight: 600;
+        color: #818cf8;
+        letter-spacing: 0.05em;
         margin-bottom: 4px;
     }
     .h-pipe-title {
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: #f1f5f9;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #f4f4f5;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .h-pipe-desc {
-        font-size: 0.7rem;
-        color: #94a3b8;
-        margin-top: 2px;
-    }
-    .h-pipe-arrow {
-        color: #818cf8;
-        font-size: 1.1rem;
-        font-weight: bold;
-        text-shadow: 0 0 10px rgba(129, 140, 248, 0.6);
-        animation: pulse-arrow 2s infinite;
-        flex-shrink: 0;
-    }
-    @keyframes pulse-arrow {
-        0%, 100% { opacity: 0.6; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.15); text-shadow: 0 0 16px #818cf8; }
+        font-size: 0.71rem;
+        color: var(--text-muted);
+        margin-top: 3px;
+        line-height: 1.35;
     }
 
-    /* Metric Stat Cards */
+    /* Expander Styling */
+    [data-testid="stExpander"] {
+        background-color: var(--bg-surface) !important;
+        border: 1px solid var(--border-subtle) !important;
+        border-radius: 10px !important;
+    }
+    [data-testid="stExpander"] summary {
+        color: var(--text-secondary) !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+    }
+
+    /* Compact Metric Cards (Sidebar) */
     .metric-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin: 12px 0;
+        gap: 8px;
+        margin: 10px 0;
     }
     .stat-card {
-        background: rgba(15, 23, 42, 0.65);
-        border: 1px solid rgba(99, 102, 241, 0.2);
-        border-radius: 12px;
-        padding: 14px 12px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
+        padding: 12px 10px;
         text-align: center;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .stat-card:hover {
-        border-color: rgba(168, 85, 247, 0.5);
-        transform: translateY(-2px);
     }
     .stat-number {
-        font-size: 1.6rem;
-        font-weight: 800;
-        color: #c084fc;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #fafafa;
         font-family: 'JetBrains Mono', monospace;
     }
     .stat-label {
-        font-size: 0.72rem;
-        font-weight: 600;
-        color: #94a3b8;
+        font-size: 0.68rem;
+        font-weight: 500;
+        color: var(--text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.6px;
+        letter-spacing: 0.06em;
         margin-top: 2px;
+    }
+    .cache-pill {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 8px;
+        font-family: 'JetBrains Mono', monospace;
     }
 
     /* Citation Badges */
@@ -230,81 +281,82 @@ st.markdown(
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        background: rgba(99, 102, 241, 0.12);
-        border: 1px solid rgba(99, 102, 241, 0.35);
+        background: rgba(99, 102, 241, 0.10);
+        border: 1px solid rgba(99, 102, 241, 0.28);
         color: #c7d2fe;
         border-radius: 6px;
-        padding: 4px 10px;
+        padding: 3px 9px;
         margin: 3px 4px 3px 0;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.8rem;
+        font-size: 0.76rem;
         font-weight: 500;
     }
     .cite-badge-table {
-        background: rgba(168, 85, 247, 0.14);
-        border-color: rgba(168, 85, 247, 0.45);
-        color: #f3e8ff;
+        background: rgba(168, 85, 247, 0.10);
+        border-color: rgba(168, 85, 247, 0.32);
+        color: #e9d5ff;
     }
     .cite-badge-image {
-        background: rgba(16, 185, 129, 0.14);
-        border-color: rgba(16, 185, 129, 0.45);
+        background: rgba(16, 185, 129, 0.10);
+        border-color: rgba(16, 185, 129, 0.32);
         color: #a7f3d0;
     }
     .cite-badge-audio {
-        background: rgba(56, 189, 248, 0.14);
-        border-color: rgba(56, 189, 248, 0.45);
+        background: rgba(56, 189, 248, 0.10);
+        border-color: rgba(56, 189, 248, 0.32);
         color: #bae6fd;
     }
 
     /* Visual Crop Container */
     .crop-frame {
-        border: 1px solid rgba(168, 85, 247, 0.4);
-        border-radius: 12px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
         padding: 6px;
-        background: rgba(15, 23, 42, 0.9);
-        box-shadow: 
-            0 8px 24px rgba(0, 0, 0, 0.6),
-            0 0 20px rgba(168, 85, 247, 0.18);
-        margin: 14px 0;
+        background: var(--bg-surface);
+        margin: 12px 0;
     }
 
-    /* Streamlit Chat & Input Styling */
+    /* Streamlit Chat Messages */
     .stChatMessage {
-        background-color: rgba(15, 23, 42, 0.6) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 14px !important;
-        padding: 18px !important;
-        margin-bottom: 14px !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+        background-color: var(--bg-surface) !important;
+        border: 1px solid var(--border-subtle) !important;
+        border-radius: 12px !important;
+        padding: 16px 18px !important;
+        margin-bottom: 12px !important;
     }
-    
-    /* Buttons — Smooth Luxurious Electric Indigo & Royal Violet */
-    .stButton>button {
-        background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #9333ea 100%) !important;
+
+    /* Secondary / Prompt Buttons — Sleek Zinc Glass */
+    .stButton > button {
+        background: var(--bg-surface) !important;
+        color: #e4e4e7 !important;
+        font-weight: 500 !important;
+        font-size: 0.84rem !important;
+        border: 1px solid var(--border-subtle) !important;
+        border-radius: 9px !important;
+        padding: 8px 14px !important;
+        box-shadow: none !important;
+        transition: all 0.18s ease !important;
+    }
+    .stButton > button:hover {
+        background: var(--bg-surface-hover) !important;
+        border-color: var(--border-hover) !important;
         color: #ffffff !important;
-        font-weight: 700 !important;
-        font-size: 0.88rem !important;
-        letter-spacing: 0.3px !important;
-        border: 1px solid rgba(216, 180, 254, 0.45) !important;
-        border-radius: 10px !important;
-        padding: 9px 20px !important;
-        box-shadow: 
-            0 4px 18px rgba(0, 0, 0, 0.4),
-            0 0 20px rgba(99, 102, 241, 0.32) !important;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transform: translateY(-1px) !important;
     }
-    .stButton>button:hover {
-        background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #a855f7 100%) !important;
-        border-color: rgba(243, 232, 255, 0.85) !important;
-        box-shadow: 
-            0 6px 24px rgba(0, 0, 0, 0.5),
-            0 0 28px rgba(168, 85, 247, 0.6) !important;
-        transform: translateY(-1.5px) !important;
-        color: #ffffff !important;
-    }
-    .stButton>button:active {
+    .stButton > button:active {
         transform: translateY(0px) !important;
-        box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4) !important;
+    }
+
+    /* Primary CTA Button (Only for main action) */
+    .stButton > button[kind="primary"] {
+        background: #4f46e5 !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background: #4338ca !important;
+        border-color: rgba(255, 255, 255, 0.24) !important;
     }
     </style>
     """,
@@ -460,25 +512,25 @@ except Exception as e:
 with st.sidebar:
     st.markdown(
         """
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-            <div style="background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%); border: 1px solid rgba(216, 180, 254, 0.45); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 0 16px rgba(99, 102, 241, 0.45);">⚡</div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+            <div style="background: #4f46e5; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 1rem;">⚡</div>
             <div>
-                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #f1f5f9;">CogentSearch</h3>
-                <span style="font-size: 0.72rem; color: #c084fc; font-weight: 700; letter-spacing: 0.8px;">MULTIMODAL AGENTIC RAG</span>
+                <div style="font-size: 1.08rem; font-weight: 700; color: #fafafa; line-height: 1.2;">CogentSearch</div>
+                <div style="font-size: 0.66rem; color: #818cf8; font-weight: 600; letter-spacing: 0.08em; font-family: 'JetBrains Mono', monospace;">MULTIMODAL RAG</div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.caption("Self-Correcting Document Search & RAG Engine")
     st.divider()
 
-    st.markdown("#### 📂 Ingestion Pipeline")
+    st.markdown("##### Ingestion")
     uploaded_files = st.file_uploader(
         "Upload Documents & Transcripts",
         type=["pdf", "docx", "pptx", "txt", "json"],
         accept_multiple_files=True,
         help="Upload multi-page PDFs, Word documents (.docx), slide decks (.pptx), or audio transcripts (.txt, .json).",
+        label_visibility="collapsed",
     )
 
     if uploaded_files:
@@ -511,8 +563,8 @@ with st.sidebar:
                 time.sleep(0.4)
                 progress_bar.empty()
 
-    # Preload sample corpus button
-    if st.button("📂 Preload Enterprise Corpus", use_container_width=True):
+    # Preload sample corpus button (Primary CTA)
+    if st.button("Preload Enterprise Corpus", type="primary", use_container_width=True):
         sample_files = [
             CORPUS_DIR / "doc_02_multipage_table.pdf",
             CORPUS_DIR / "doc_04_charts_diagrams.pdf",
@@ -543,7 +595,9 @@ with st.sidebar:
     st.divider()
 
     # Live Repository Stats
-    st.markdown("#### 📊 Vector DB Telemetry")
+    st.markdown("##### Telemetry")
+    cache_backend = st.session_state.query_cache.backend.upper() if "query_cache" in st.session_state else "MEMORY"
+    cache_hits = st.session_state.query_cache.hits if "query_cache" in st.session_state else 0
     st.markdown(
         f"""
         <div class="metric-grid">
@@ -556,39 +610,38 @@ with st.sidebar:
                 <div class="stat-label">Chunks</div>
             </div>
         </div>
+        <div class="cache-pill">
+            <span>Cache: {cache_backend}</span>
+            <span style="color: #10b981;">{cache_hits} hits</span>
+        </div>
         """,
         unsafe_allow_html=True,
     )
 
     if st.session_state.indexed_files:
-        st.caption("**Indexed Corpus:**")
+        st.caption("**Indexed Files:**")
         for fn in sorted(st.session_state.indexed_files):
-            st.markdown(f"- `<span style='color: #c7d2fe; font-family: monospace; font-size: 0.8rem;'>{fn}</span>`", unsafe_allow_html=True)
+            st.markdown(f"- `<span style='color: #a1a1aa; font-family: JetBrains Mono, monospace; font-size: 0.74rem;'>{fn}</span>`", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🗑️ Reset Chat & Memory", use_container_width=True):
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    if st.button("Reset Session", use_container_width=True):
         st.session_state.messages = [st.session_state.messages[0]]
         st.rerun()
 
 
 # ------------------------------------------------------------------------------
-# 3. EXECUTIVE HERO HEADER & STATUS BARS
+# 3. MINIMALIST HERO HEADER
 # ------------------------------------------------------------------------------
 st.markdown(
     """
-    <div class="hero-container">
-        <h1 class="hero-title">⚡ CogentSearch</h1>
-        <div class="hero-subtitle">
-            Enterprise Multimodal RAG with self-correcting LangGraph loops, hybrid vector + lexical search, 
-            and pixel-level line-of-sight table and chart visual provenance.
+    <div class="hero-minimal">
+        <div class="hero-eyebrow">
+            <span class="hero-eyebrow-dot"></span>
+            Hybrid Qdrant + BM25 · LangGraph Self-Correction · Zero-Key Offline
         </div>
-        <div class="rag-status-bar">
-            <div class="rag-pill"><span></span> Ingestion: Docling, LlamaParse & Whisper ASR</div>
-            <div class="rag-pill"><span></span> Dense Store: Qdrant Cosine (1536d)</div>
-            <div class="rag-pill"><span></span> Lexical: BM25 Okapi Engine</div>
-            <div class="rag-pill"><span></span> Fusion: RRF (Constant k=60)</div>
-            <div class="rag-pill"><span></span> Reranker: MiniLM-L-6-v2 Cross-Encoder</div>
-            <div class="rag-pill"><span></span> Agent Loop: LangGraph StateGraph</div>
+        <h1 class="hero-title">CogentSearch</h1>
+        <div class="hero-subtitle">
+            Multimodal document intelligence across PDFs, tables, charts, decks, and Whisper transcripts with line-of-sight visual citations.
         </div>
     </div>
     """,
@@ -596,41 +649,36 @@ st.markdown(
 )
 
 # ------------------------------------------------------------------------------
-# 4. MOVING PIPELINE ARCHITECTURE FLOW (MAIN VIEW)
+# 4. RESPONSIVE 6-STAGE PIPELINE ARCHITECTURE FLOW (NO CLIPPING)
 # ------------------------------------------------------------------------------
-with st.expander("⚡ View Moving End-to-End Pipeline Architecture Flow", expanded=True):
+with st.expander("Architecture Pipeline (6-Stage Hybrid & Agentic Flow)", expanded=True):
     main_pipe_html = (
-        '<div class="h-pipeline-container">'
-        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 1</div><div class="h-pipe-title">📂 Document Ingestion</div><div class="h-pipe-desc">Docling & LlamaParse</div></div>'
-        '<div class="h-pipe-arrow">➔</div>'
-        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 2</div><div class="h-pipe-title">⚡ Dual-Store Retrieval</div><div class="h-pipe-desc">Qdrant Dense + BM25</div></div>'
-        '<div class="h-pipe-arrow">➔</div>'
-        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 3</div><div class="h-pipe-title">🔀 Reciprocal Fusion</div><div class="h-pipe-desc">RRF (Constant k=60)</div></div>'
-        '<div class="h-pipe-arrow">➔</div>'
-        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 4</div><div class="h-pipe-title">🎯 Neural Reranking</div><div class="h-pipe-desc">Cross-Encoder Attention</div></div>'
-        '<div class="h-pipe-arrow">➔</div>'
-        '<div class="h-pipe-step"><div class="h-pipe-badge">STAGE 5</div><div class="h-pipe-title">🤖 LangGraph Loop</div><div class="h-pipe-desc">Grader & Self-Correction</div></div>'
-        '<div class="h-pipe-arrow">➔</div>'
-        '<div class="h-pipe-step" style="border-color: rgba(34, 197, 94, 0.45); background: rgba(20, 83, 45, 0.3);"><div class="h-pipe-badge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: rgba(34, 197, 94, 0.4);">STAGE 6</div><div class="h-pipe-title" style="color: #86efac;">📷 Verified Citations</div><div class="h-pipe-desc" style="color: #bbf7d0;">Cropped Table/Chart Crops</div></div>'
+        '<div class="h-pipeline-grid">'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">01 / INGEST</div><div class="h-pipe-title">Parse & Crop</div><div class="h-pipe-desc">Docling, PyMuPDF & ASR</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">02 / RETRIEVE</div><div class="h-pipe-title">Hybrid Search</div><div class="h-pipe-desc">Qdrant 1536d + BM25</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">03 / FUSE</div><div class="h-pipe-title">Rank Fusion</div><div class="h-pipe-desc">RRF (k=60)</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">04 / RERANK</div><div class="h-pipe-title">Cross-Encoder</div><div class="h-pipe-desc">MiniLM-L-6-v2 Attention</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">05 / VERIFY</div><div class="h-pipe-title">LangGraph Loop</div><div class="h-pipe-desc">Rewrite & Evidence Grade</div></div>'
+        '<div class="h-pipe-card" style="border-color: rgba(16, 185, 129, 0.35);"><div class="h-pipe-step-num" style="color: #34d399;">06 / CITE</div><div class="h-pipe-title">Visual Proof</div><div class="h-pipe-desc">BBox Crops & Citations</div></div>'
         '</div>'
     )
     st.markdown(main_pipe_html, unsafe_allow_html=True)
 
 # Suggested Query Quick Pills
-st.caption("💡 **Sample Verification Queries:**")
+st.caption("Try a sample query:")
 q_col1, q_col2, q_col3, q_col4 = st.columns(4)
 sample_query = None
 with q_col1:
-    if st.button("📊 Financial Tables", use_container_width=True):
+    if st.button("Financial Tables", use_container_width=True):
         sample_query = "What are the financial metrics and revenue figures in the quarterly report table?"
 with q_col2:
-    if st.button("📈 Benchmark Charts", use_container_width=True):
+    if st.button("Benchmark Charts", use_container_width=True):
         sample_query = "What are the latency benchmarks and system throughput metrics shown in the chart?"
 with q_col3:
-    if st.button("🎙️ Audio Transcript", use_container_width=True):
+    if st.button("Audio Transcript", use_container_width=True):
         sample_query = "What were the key financial metrics, ARR growth, and margin improvements discussed in the executive earnings call transcript?"
 with q_col4:
-    if st.button("🏗️ Architecture & Clusters", use_container_width=True):
+    if st.button("Architecture & Clusters", use_container_width=True):
         sample_query = "Explain the system architecture specifications and cluster configurations."
 
 # Render Chat History
