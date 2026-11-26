@@ -596,8 +596,10 @@ with st.sidebar:
 
     # Live Repository Stats
     st.markdown("##### Telemetry")
+    from cogent.core.config import settings as cogent_settings
     cache_backend = st.session_state.query_cache.backend.upper() if "query_cache" in st.session_state else "MEMORY"
     cache_hits = st.session_state.query_cache.hits if "query_cache" in st.session_state else 0
+    llm_mode = "Groq Llama-3.3" if getattr(cogent_settings, "GROQ_API_KEY", "") else ("OpenAI GPT-4o" if cogent_settings.OPENAI_API_KEY else "Offline Mode")
     st.markdown(
         f"""
         <div class="metric-grid">
@@ -614,9 +616,30 @@ with st.sidebar:
             <span>Cache: {cache_backend}</span>
             <span style="color: #10b981;">{cache_hits} hits</span>
         </div>
+        <div class="cache-pill">
+            <span>Engine</span>
+            <span style="color: #a5b4fc;">{llm_mode}</span>
+        </div>
         """,
         unsafe_allow_html=True,
     )
+
+    with st.expander("Optional: Live Groq LLM", expanded=False):
+        groq_input = st.text_input(
+            "Groq API Key",
+            value=getattr(cogent_settings, "GROQ_API_KEY", ""),
+            type="password",
+            placeholder="gsk_...",
+            help="Free ultra-fast Llama-3.3-70B inference (console.groq.com). Leave blank for offline mode.",
+        )
+        if groq_input != getattr(cogent_settings, "GROQ_API_KEY", ""):
+            cogent_settings.GROQ_API_KEY = groq_input
+            if BACKEND_AVAILABLE:
+                st.session_state.agent_app = build_agentic_rag_graph(
+                    hybrid_retriever=st.session_state.hybrid_retriever,
+                    max_retries=2,
+                )
+            st.rerun()
 
     if st.session_state.indexed_files:
         st.caption("**Indexed Files:**")

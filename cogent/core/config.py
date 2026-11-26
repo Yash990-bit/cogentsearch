@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     # API Keys
     OPENAI_API_KEY: str = Field(default="", description="OpenAI API key for vision and embeddings")
     ANTHROPIC_API_KEY: str = Field(default="", description="Anthropic API key for Claude vision")
+    GROQ_API_KEY: str = Field(default="", description="Optional Groq API key for ultra-fast LPU inference")
     LLAMA_CLOUD_API_KEY: str = Field(default="", description="Optional LlamaParse API Key")
 
     # Vision & Multimodal Settings
@@ -43,6 +44,9 @@ class Settings(BaseSettings):
     REWRITER_MODEL_NAME: str = "gpt-4o-mini"
     GRADER_MODEL_NAME: str = "gpt-4o-mini"
     GENERATOR_MODEL_NAME: str = "gpt-4o"
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+    GROQ_FAST_MODEL: str = "llama-3.1-8b-instant"
+    GROQ_GENERATOR_MODEL: str = "llama-3.3-70b-versatile"
     LLM_TEMPERATURE: float = 0.0
     MAX_REWRITE_RETRIES: int = 2
     WEB_SEARCH_ENABLED: bool = True

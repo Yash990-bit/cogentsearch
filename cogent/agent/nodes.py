@@ -62,24 +62,58 @@ class AgentNodes:
             self._generator_llm = self._llm
             return
 
-        api_key = settings.OPENAI_API_KEY
-        if api_key:
+        groq_key = getattr(settings, "GROQ_API_KEY", "")
+        openai_key = settings.OPENAI_API_KEY
+
+        if groq_key:
+            try:
+                from langchain_openai import ChatOpenAI
+                self._rewriter_llm = ChatOpenAI(
+                    model=settings.GROQ_FAST_MODEL,
+                    temperature=settings.LLM_TEMPERATURE,
+                    api_key=groq_key,
+                    base_url=settings.GROQ_BASE_URL,
+                )
+                self._grader_llm = ChatOpenAI(
+                    model=settings.GROQ_FAST_MODEL,
+                    temperature=settings.LLM_TEMPERATURE,
+                    api_key=groq_key,
+                    base_url=settings.GROQ_BASE_URL,
+                )
+                self._generator_llm = ChatOpenAI(
+                    model=settings.GROQ_GENERATOR_MODEL,
+                    temperature=settings.LLM_TEMPERATURE,
+                    api_key=groq_key,
+                    base_url=settings.GROQ_BASE_URL,
+                )
+                self._llm = self._generator_llm
+                logger.info(
+                    f"Initialized Groq LPU routing: Rewriter/Grader='{settings.GROQ_FAST_MODEL}', "
+                    f"Generator='{settings.GROQ_GENERATOR_MODEL}'."
+                )
+            except Exception as e:
+                logger.warning(f"Could not initialize Groq ChatOpenAI: {e}. Using deterministic agent fallback.")
+                self._llm = None
+                self._rewriter_llm = None
+                self._grader_llm = None
+                self._generator_llm = None
+        elif openai_key:
             try:
                 from langchain_openai import ChatOpenAI
                 self._rewriter_llm = ChatOpenAI(
                     model=settings.REWRITER_MODEL_NAME,
                     temperature=settings.LLM_TEMPERATURE,
-                    api_key=api_key,
+                    api_key=openai_key,
                 )
                 self._grader_llm = ChatOpenAI(
                     model=settings.GRADER_MODEL_NAME,
                     temperature=settings.LLM_TEMPERATURE,
-                    api_key=api_key,
+                    api_key=openai_key,
                 )
                 self._generator_llm = ChatOpenAI(
                     model=settings.GENERATOR_MODEL_NAME,
                     temperature=settings.LLM_TEMPERATURE,
-                    api_key=api_key,
+                    api_key=openai_key,
                 )
                 self._llm = self._generator_llm
                 logger.info(
