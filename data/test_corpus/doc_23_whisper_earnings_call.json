@@ -1,0 +1,50 @@
+{
+  "model": "whisper-large-v3",
+  "language": "en",
+  "duration": 480.0,
+  "text": "Welcome to the CogentSearch Q3 Financial and Strategic Review call.",
+  "segments": [
+    {
+      "id": 0,
+      "start": 0.0,
+      "end": 14.5,
+      "text": "Good morning and welcome to the CogentSearch Q3 Strategic & Financial Review call.",
+      "speaker": "CEO"
+    },
+    {
+      "id": 1,
+      "start": 15.0,
+      "end": 35.2,
+      "text": "In the third quarter, our Annual Recurring Revenue (ARR) accelerated to $48.5 million, up 34% YoY.",
+      "speaker": "CEO"
+    },
+    {
+      "id": 2,
+      "start": 36.0,
+      "end": 58.0,
+      "text": "Enterprise customer retention remained exceptional with a Net Dollar Retention (NDR) rate of 128%.",
+      "speaker": "CEO"
+    },
+    {
+      "id": 3,
+      "start": 59.0,
+      "end": 82.5,
+      "text": "Turning to our infrastructure efficiency, gross margins improved to 82.4% with hybrid Qdrant retrieval.",
+      "speaker": "CFO"
+    },
+    {
+      "id": 4,
+      "start": 83.0,
+      "end": 105.0,
+      "text": "Operating cash flow for the quarter was positive at $12.3 million with zero long-term debt.",
+      "speaker": "CFO"
+    },
+    {
+      "id": 5,
+      "start": 106.0,
+      "end": 132.0,
+      "text": "For the full fiscal year 2026, we are raising revenue guidance to between $192 million and $198 million.",
+      "speaker": "CFO"
+    }
+  ]
+}

@@ -10,10 +10,21 @@ venv/
 ENV/
 
 # Data & Cache
-data/
+data/*
+!data/test_corpus/
+data/test_corpus/*
+!data/test_corpus/doc_02_multipage_table.pdf
+!data/test_corpus/doc_04_charts_diagrams.pdf
+!data/test_corpus/doc_05_nested_report.docx
+!data/test_corpus/doc_06_slides_20plus.pptx
+!data/test_corpus/doc_23_whisper_earnings_call.json
 *.pdf
+!data/test_corpus/doc_02_multipage_table.pdf
+!data/test_corpus/doc_04_charts_diagrams.pdf
 *.docx
+!data/test_corpus/doc_05_nested_report.docx
 *.pptx
+!data/test_corpus/doc_06_slides_20plus.pptx
 *.png
 !assets/*.png
 *.jpg
