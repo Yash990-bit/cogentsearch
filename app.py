@@ -101,7 +101,7 @@ st.markdown(
         background-color: var(--bg-surface) !important;
         border: 1px solid var(--border-hairline) !important;
         border-radius: 12px !important;
-        box-shadow: none !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
         transition: border-color 150ms var(--ease-out) !important;
     }
     [data-testid="stChatInput"]:focus-within {
@@ -177,37 +177,56 @@ st.markdown(
         margin-top: 8px;
     }
 
-    /* Compact 6-stage pipeline strip */
-    .h-pipeline-grid {
+    /* Compact 6-stage connected pipeline rail */
+    .pipeline-rail {
         display: grid;
         grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 8px;
-        padding: 4px 0;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: 10px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        overflow: hidden;
+        margin-bottom: 16px;
     }
     @media (max-width: 1100px) {
-        .h-pipeline-grid {
+        .pipeline-rail {
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
     }
-    .h-pipe-card {
-        background: var(--bg-surface);
-        border: 1px solid var(--border-hairline);
-        border-radius: 8px;
-        padding: 12px;
-        transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+    .rail-stage {
+        padding: 12px 14px;
+        border-right: 1px solid var(--border-hairline);
+        transition: background-color 150ms var(--ease-out);
     }
-    .h-pipe-card:hover {
-        border-color: var(--border-hover);
+    .rail-stage:last-child {
+        border-right: none;
+    }
+    .rail-stage:hover {
         background: var(--bg-raised);
     }
-    .h-pipe-step-num {
+    .rail-stage-num {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         font-family: 'IBM Plex Mono', monospace;
         font-size: 11px;
         font-weight: 500;
         color: var(--text-muted);
         margin-bottom: 4px;
     }
-    .h-pipe-title {
+    .rail-stage-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--border-hover);
+    }
+    .rail-stage-final .rail-stage-dot {
+        background: var(--accent-positive);
+    }
+    .rail-stage-final .rail-stage-num {
+        color: var(--accent-positive);
+    }
+    .rail-stage-title {
         font-size: 13px;
         font-weight: 500;
         color: var(--text-primary);
@@ -215,11 +234,62 @@ st.markdown(
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    .h-pipe-desc {
+    .rail-stage-desc {
         font-size: 12px;
         color: var(--text-muted);
-        margin-top: 4px;
-        line-height: 1.35;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Archival Modality Ledger (Welcome Moment) */
+    .ledger-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+    @media (max-width: 960px) {
+        .ledger-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .ledger-panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    .ledger-heading {
+        font-size: 12px;
+        font-family: 'IBM Plex Mono', monospace;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .ledger-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-top: 1px solid var(--border-hairline);
+        font-size: 13px;
+    }
+    .ledger-row-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-primary);
+    }
+    .ledger-row-meta {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
     }
 
     /* Expander */
@@ -677,20 +747,45 @@ st.markdown(
 )
 
 # ------------------------------------------------------------------------------
-# 4. 6-STAGE PIPELINE ARCHITECTURE
+# 4. 6-STAGE PIPELINE RAIL
 # ------------------------------------------------------------------------------
-with st.expander("Pipeline architecture (6 stages)", expanded=False):
-    main_pipe_html = (
-        '<div class="h-pipeline-grid">'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">01 Ingest</div><div class="h-pipe-title">Parse & Crop</div><div class="h-pipe-desc">Docling, PyMuPDF, ASR</div></div>'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">02 Retrieve</div><div class="h-pipe-title">Hybrid Search</div><div class="h-pipe-desc">Qdrant 1536d + BM25</div></div>'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">03 Fuse</div><div class="h-pipe-title">Rank Fusion</div><div class="h-pipe-desc">RRF (k=60)</div></div>'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">04 Rerank</div><div class="h-pipe-title">Cross-Encoder</div><div class="h-pipe-desc">MiniLM-L-6-v2</div></div>'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">05 Verify</div><div class="h-pipe-title">LangGraph Loop</div><div class="h-pipe-desc">Rewrite & grade</div></div>'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">06 Cite</div><div class="h-pipe-title">Visual Proof</div><div class="h-pipe-desc">Bounding-box crops</div></div>'
-        '</div>'
-    )
-    st.markdown(main_pipe_html, unsafe_allow_html=True)
+st.markdown(
+    """
+    <div class="pipeline-rail">
+        <div class="rail-stage">
+            <div class="rail-stage-num"><span>01 Ingest</span><span class="rail-stage-dot"></span></div>
+            <div class="rail-stage-title">Parse & Crop</div>
+            <div class="rail-stage-desc">Docling, PyMuPDF, ASR</div>
+        </div>
+        <div class="rail-stage">
+            <div class="rail-stage-num"><span>02 Retrieve</span><span class="rail-stage-dot"></span></div>
+            <div class="rail-stage-title">Hybrid Search</div>
+            <div class="rail-stage-desc">Qdrant 1536d + BM25</div>
+        </div>
+        <div class="rail-stage">
+            <div class="rail-stage-num"><span>03 Fuse</span><span class="rail-stage-dot"></span></div>
+            <div class="rail-stage-title">Rank Fusion</div>
+            <div class="rail-stage-desc">RRF (k=60)</div>
+        </div>
+        <div class="rail-stage">
+            <div class="rail-stage-num"><span>04 Rerank</span><span class="rail-stage-dot"></span></div>
+            <div class="rail-stage-title">Cross-Encoder</div>
+            <div class="rail-stage-desc">MiniLM-L-6-v2</div>
+        </div>
+        <div class="rail-stage">
+            <div class="rail-stage-num"><span>05 Verify</span><span class="rail-stage-dot"></span></div>
+            <div class="rail-stage-title">LangGraph Loop</div>
+            <div class="rail-stage-desc">Rewrite & grade</div>
+        </div>
+        <div class="rail-stage rail-stage-final">
+            <div class="rail-stage-num"><span>06 Cite</span><span class="rail-stage-dot"></span></div>
+            <div class="rail-stage-title">Visual Proof</div>
+            <div class="rail-stage-desc">Bounding-box crops</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Suggested Query Quick Pills
 st.caption("Sample queries")
@@ -709,32 +804,91 @@ with q_col4:
     if st.button("Architecture & Clusters", use_container_width=True):
         sample_query = "Explain the system architecture specifications and cluster configurations."
 
-# Render Chat History
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# Initial Workbench Ledger (shown before first user query)
+if len(st.session_state.messages) == 1:
+    indexed_count = len(st.session_state.indexed_files)
+    corpus_status = f"{indexed_count} indexed" if indexed_count > 0 else "Auto-loads on query"
+    st.markdown(
+        f"""
+        <div class="ledger-grid">
+            <div class="ledger-panel">
+                <div class="ledger-heading">
+                    <span>Retrieval & verification</span>
+                    <span>RRF k=60 · MiniLM</span>
+                </div>
+                <div style="font-size: 13px; color: #a1a1a6; line-height: 1.6; margin-bottom: 12px;">
+                    Queries run through query rewriting, dense Qdrant + BM25 hybrid retrieval, cross-encoder reranking, and evidence grading before generating cited answers.
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-row-left">1. Corpus</span>
+                    <span class="ledger-row-meta">Preload sidebar or upload files</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-row-left">2. Query</span>
+                    <span class="ledger-row-meta">Pick a sample above or type below</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-row-left">3. Provenance</span>
+                    <span class="ledger-row-meta">Inline citations + PDF crops</span>
+                </div>
+            </div>
+            <div class="ledger-panel">
+                <div class="ledger-heading">
+                    <span>Enterprise sample corpus</span>
+                    <span>{corpus_status}</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-row-left"><span class="cite-dot" style="background: #5b8def;"></span>doc_02_multipage_table.pdf</span>
+                    <span class="ledger-row-meta">PDF · Table</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-row-left"><span class="cite-dot" style="background: #4cc38a;"></span>doc_04_charts_diagrams.pdf</span>
+                    <span class="ledger-row-meta">PDF · Charts</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-row-left"><span class="cite-dot"></span>doc_05_nested_report.docx</span>
+                    <span class="ledger-row-meta">DOCX · Text</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-row-left"><span class="cite-dot"></span>doc_06_slides_20plus.pptx</span>
+                    <span class="ledger-row-meta">PPTX · Slides</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-row-left"><span class="cite-dot" style="background: #e5a93c;"></span>doc_23_whisper_earnings_call.json</span>
+                    <span class="ledger-row-meta">ASR · Audio</span>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+else:
+    # Render Chat History
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
-        # Display text citations
-        if msg.get("citations"):
-            st.markdown("---")
-            st.caption("Verified sources")
-            badges_html = ""
-            for cit in msg["citations"]:
-                mod = cit.get("modality_type", "text").lower()
-                cls = "cite-badge-table" if "table" in mod else ("cite-badge-image" if "image" in mod else ("cite-badge-audio" if "audio" in mod or "transcript" in mod else "cite-badge"))
-                badges_html += f'<span class="cite-badge {cls}"><span class="cite-dot"></span>{cit.get("source_file")} · p.{cit.get("page_number")} · {mod}</span> '
-            st.markdown(badges_html, unsafe_allow_html=True)
+            # Display text citations
+            if msg.get("citations"):
+                st.markdown("---")
+                st.caption("Verified sources")
+                badges_html = ""
+                for cit in msg["citations"]:
+                    mod = cit.get("modality_type", "text").lower()
+                    cls = "cite-badge-table" if "table" in mod else ("cite-badge-image" if "image" in mod else ("cite-badge-audio" if "audio" in mod or "transcript" in mod else "cite-badge"))
+                    badges_html += f'<span class="cite-badge {cls}"><span class="cite-dot"></span>{cit.get("source_file")} · p.{cit.get("page_number")} · {mod}</span> '
+                st.markdown(badges_html, unsafe_allow_html=True)
 
-        # Display cropped multimodal tables & chart images
-        if msg.get("image_crops"):
-            for crop in msg["image_crops"]:
-                st.markdown('<div class="crop-frame">', unsafe_allow_html=True)
-                st.image(
-                    crop["bytes"],
-                    caption=f"{crop.get('modality', 'Element').title()} bounding box — {crop.get('source')} (p.{crop.get('page')})",
-                    use_container_width=True,
-                )
-                st.markdown('</div>', unsafe_allow_html=True)
+            # Display cropped multimodal tables & chart images
+            if msg.get("image_crops"):
+                for crop in msg["image_crops"]:
+                    st.markdown('<div class="crop-frame">', unsafe_allow_html=True)
+                    st.image(
+                        crop["bytes"],
+                        caption=f"{crop.get('modality', 'Element').title()} bounding box — {crop.get('source')} (p.{crop.get('page')})",
+                        use_container_width=True,
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
 
 # User Chat Input
 user_input = st.chat_input("Ask about documents, tables, charts, or transcripts")
