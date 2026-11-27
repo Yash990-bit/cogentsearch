@@ -27,160 +27,161 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 CORPUS_DIR = Path("data/test_corpus")
 
 # ------------------------------------------------------------------------------
-# 1. PAGE CONFIGURATION & ENTERPRISE NEON-ORANGE STYLING
+# 1. PAGE CONFIGURATION & GRAPHITE ARCHIVAL STYLING
 # ------------------------------------------------------------------------------
 st.set_page_config(
     layout="wide",
-    page_title="CogentSearch — Multimodal Agentic RAG",
-    page_icon="⚡",
+    page_title="CogentSearch — Multimodal Document Search",
     initial_sidebar_state="expanded",
 )
 
-# Custom Enterprise Styling — Linear / Perplexity / Vercel Obsidian & Zinc-950 Design System
+# Graphite neutral ramp + IBM Plex Sans/Mono (unslop passes 1-9)
 st.markdown(
     """
     <style>
-    /* Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
-    /* Root Variables */
     :root {
-        --bg-canvas: #09090b;
-        --bg-sidebar: #0c0c0f;
-        --bg-surface: #121216;
-        --bg-surface-hover: #18181d;
-        --border-subtle: rgba(255, 255, 255, 0.08);
-        --border-hover: rgba(99, 102, 241, 0.45);
-        --text-primary: #fafafa;
-        --text-secondary: #a1a1aa;
-        --text-muted: #71717a;
-        --accent-indigo: #6366f1;
+        --bg-sidebar: #0f0f10;
+        --bg-canvas: #141415;
+        --bg-surface: #19191b;
+        --bg-raised: #232325;
+        --border-hairline: rgba(237, 237, 237, 0.08);
+        --border-hover: rgba(237, 237, 237, 0.18);
+        --text-primary: #ededed;
+        --text-secondary: #a1a1a6;
+        --text-muted: #85858b;
+        --accent-positive: #4cc38a;
+        --accent-cobalt: #5b8def;
+        --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    /* Global Canvas & Typography */
     html, body, [class*="css"], .stApp {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
         color: var(--text-primary);
     }
 
     .stApp, [data-testid="stAppViewContainer"] {
         background-color: var(--bg-canvas) !important;
-        background-image: radial-gradient(ellipse 80% 50% at 50% -15%, rgba(99, 102, 241, 0.10), transparent) !important;
+        background-image: none !important;
     }
 
-    /* Hide Streamlit Default Chrome (Deploy button, Hamburger, Footer) */
+    /* Hide Streamlit chrome */
     [data-testid="stToolbar"] {
         visibility: hidden !important;
         height: 0 !important;
     }
     header[data-testid="stHeader"] {
         background: transparent !important;
-        height: 2.5rem !important;
+        height: 2rem !important;
     }
     #MainMenu, footer {
         visibility: hidden !important;
     }
 
-    /* Unified Sidebar (Kill Default #262730 Gray) */
+    /* Sidebar */
     [data-testid="stSidebar"] {
         background-color: var(--bg-sidebar) !important;
-        border-right: 1px solid var(--border-subtle) !important;
+        border-right: 1px solid var(--border-hairline) !important;
     }
     [data-testid="stSidebar"] > div:first-child {
         background-color: var(--bg-sidebar) !important;
-        padding-top: 1.5rem !important;
+        padding: 20px 16px !important;
     }
 
-    /* Unified Bottom Chat Input Bar (Kill Default #262730 Gray) */
+    /* Bottom chat input bar */
     [data-testid="stBottom"],
     [data-testid="stBottom"] > div,
     [data-testid="stBottomBlockContainer"] {
         background-color: var(--bg-canvas) !important;
-        background-image: linear-gradient(180deg, rgba(9, 9, 11, 0) 0%, #09090b 25%) !important;
+        background-image: none !important;
         border-top: none !important;
     }
     [data-testid="stChatInput"] {
         background-color: var(--bg-surface) !important;
-        border: 1px solid rgba(255, 255, 255, 0.11) !important;
+        border: 1px solid var(--border-hairline) !important;
         border-radius: 12px !important;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45) !important;
+        box-shadow: none !important;
+        transition: border-color 150ms var(--ease-out) !important;
     }
     [data-testid="stChatInput"]:focus-within {
-        border-color: rgba(99, 102, 241, 0.6) !important;
-        box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35), 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+        border-color: var(--border-hover) !important;
+        box-shadow: none !important;
     }
     [data-testid="stChatInput"] textarea {
         color: var(--text-primary) !important;
-        font-size: 0.92rem !important;
+        font-size: 14px !important;
     }
     [data-testid="stChatInput"] button {
-        background-color: #4f46e5 !important;
-        color: #ffffff !important;
+        background-color: var(--text-primary) !important;
+        color: var(--bg-canvas) !important;
         border-radius: 8px !important;
     }
 
     /* File Uploader Dropzone */
     [data-testid="stFileUploaderDropzone"] {
         background-color: var(--bg-surface) !important;
-        border: 1px dashed rgba(255, 255, 255, 0.14) !important;
-        border-radius: 10px !important;
-        padding: 14px !important;
+        border: 1px dashed var(--border-hover) !important;
+        border-radius: 8px !important;
+        padding: 16px !important;
+        transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out) !important;
     }
     [data-testid="stFileUploaderDropzone"]:hover {
-        border-color: rgba(99, 102, 241, 0.5) !important;
-        background-color: var(--bg-surface-hover) !important;
+        border-color: rgba(237, 237, 237, 0.28) !important;
+        background-color: var(--bg-raised) !important;
     }
 
-    /* Minimalist Hero Header */
+    /* Header */
     .hero-minimal {
-        padding: 8px 0 18px 0;
-        margin-bottom: 12px;
-        border-bottom: 1px solid var(--border-subtle);
+        padding: 4px 0 16px 0;
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--border-hairline);
     }
-    .hero-eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.7rem;
-        font-weight: 500;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #a5b4fc;
-        background: rgba(99, 102, 241, 0.10);
-        border: 1px solid rgba(99, 102, 241, 0.22);
-        padding: 3px 10px;
-        border-radius: 999px;
-        margin-bottom: 10px;
-    }
-    .hero-eyebrow-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #10b981;
-        box-shadow: 0 0 6px #10b981;
+    .hero-top-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
     }
     .hero-title {
-        font-size: 2rem;
-        font-weight: 700;
-        letter-spacing: -0.03em;
-        color: #fafafa;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
         margin: 0;
         line-height: 1.2;
     }
+    .hero-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-muted);
+    }
+    .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent-positive);
+        display: inline-block;
+    }
     .hero-subtitle {
-        font-size: 0.94rem;
+        font-size: 14px;
+        font-weight: 400;
         color: var(--text-secondary);
-        max-width: 760px;
-        line-height: 1.55;
-        margin-top: 6px;
+        max-width: 640px;
+        line-height: 1.5;
+        margin-top: 8px;
     }
 
-    /* Responsive 6-Column Pipeline Grid (Zero Clipping) */
+    /* Compact 6-stage pipeline strip */
     .h-pipeline-grid {
         display: grid;
         grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 10px;
+        gap: 8px;
         padding: 4px 0;
     }
     @media (max-width: 1100px) {
@@ -190,173 +191,168 @@ st.markdown(
     }
     .h-pipe-card {
         background: var(--bg-surface);
-        border: 1px solid var(--border-subtle);
-        border-radius: 10px;
-        padding: 12px 10px;
-        transition: border-color 0.2s ease, background-color 0.2s ease;
+        border: 1px solid var(--border-hairline);
+        border-radius: 8px;
+        padding: 12px;
+        transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out);
     }
     .h-pipe-card:hover {
         border-color: var(--border-hover);
-        background: var(--bg-surface-hover);
+        background: var(--bg-raised);
     }
     .h-pipe-step-num {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.66rem;
-        font-weight: 600;
-        color: #818cf8;
-        letter-spacing: 0.05em;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-muted);
         margin-bottom: 4px;
     }
     .h-pipe-title {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #f4f4f5;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
     .h-pipe-desc {
-        font-size: 0.71rem;
+        font-size: 12px;
         color: var(--text-muted);
-        margin-top: 3px;
+        margin-top: 4px;
         line-height: 1.35;
     }
 
-    /* Expander Styling */
+    /* Expander */
     [data-testid="stExpander"] {
         background-color: var(--bg-surface) !important;
-        border: 1px solid var(--border-subtle) !important;
-        border-radius: 10px !important;
+        border: 1px solid var(--border-hairline) !important;
+        border-radius: 8px !important;
     }
     [data-testid="stExpander"] summary {
         color: var(--text-secondary) !important;
-        font-size: 0.85rem !important;
+        font-size: 13px !important;
         font-weight: 500 !important;
     }
 
-    /* Compact Metric Cards (Sidebar) */
+    /* Sidebar Metric Cards */
     .metric-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
-        margin: 10px 0;
+        margin: 12px 0;
     }
     .stat-card {
         background: var(--bg-surface);
-        border: 1px solid var(--border-subtle);
-        border-radius: 10px;
-        padding: 12px 10px;
-        text-align: center;
+        border: 1px solid var(--border-hairline);
+        border-radius: 8px;
+        padding: 12px;
+        text-align: left;
     }
     .stat-number {
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: #fafafa;
-        font-family: 'JetBrains Mono', monospace;
+        font-size: 24px;
+        font-weight: 500;
+        color: var(--text-primary);
+        font-family: 'IBM Plex Mono', monospace;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
     }
     .stat-label {
-        font-size: 0.68rem;
-        font-weight: 500;
+        font-size: 12px;
+        font-weight: 400;
         color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin-top: 2px;
+        margin-top: 4px;
     }
     .cache-pill {
         display: flex;
         align-items: center;
         justify-content: space-between;
         background: var(--bg-surface);
-        border: 1px solid var(--border-subtle);
+        border: 1px solid var(--border-hairline);
         border-radius: 8px;
-        padding: 7px 10px;
-        font-size: 0.75rem;
+        padding: 8px 12px;
+        font-size: 12px;
         color: var(--text-secondary);
         margin-top: 8px;
-        font-family: 'JetBrains Mono', monospace;
+        font-family: 'IBM Plex Mono', monospace;
+        font-variant-numeric: tabular-nums;
     }
 
-    /* Citation Badges */
+    /* Citation chips */
     .cite-badge {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
-        background: rgba(99, 102, 241, 0.10);
-        border: 1px solid rgba(99, 102, 241, 0.28);
-        color: #c7d2fe;
+        gap: 6px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        color: var(--text-secondary);
         border-radius: 6px;
-        padding: 3px 9px;
-        margin: 3px 4px 3px 0;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.76rem;
-        font-weight: 500;
+        padding: 4px 8px;
+        margin: 4px 4px 4px 0;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        font-weight: 400;
+        font-variant-numeric: tabular-nums;
     }
-    .cite-badge-table {
-        background: rgba(168, 85, 247, 0.10);
-        border-color: rgba(168, 85, 247, 0.32);
-        color: #e9d5ff;
+    .cite-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        display: inline-block;
     }
-    .cite-badge-image {
-        background: rgba(16, 185, 129, 0.10);
-        border-color: rgba(16, 185, 129, 0.32);
-        color: #a7f3d0;
-    }
-    .cite-badge-audio {
-        background: rgba(56, 189, 248, 0.10);
-        border-color: rgba(56, 189, 248, 0.32);
-        color: #bae6fd;
-    }
+    .cite-badge-table .cite-dot { background: var(--accent-cobalt); }
+    .cite-badge-image .cite-dot { background: var(--accent-positive); }
+    .cite-badge-audio .cite-dot { background: #e5a93c; }
 
     /* Visual Crop Container */
     .crop-frame {
-        border: 1px solid var(--border-subtle);
-        border-radius: 10px;
-        padding: 6px;
+        border: 1px solid var(--border-hairline);
+        border-radius: 12px;
+        padding: 8px;
         background: var(--bg-surface);
         margin: 12px 0;
     }
 
-    /* Streamlit Chat Messages */
+    /* Chat Messages */
     .stChatMessage {
         background-color: var(--bg-surface) !important;
-        border: 1px solid var(--border-subtle) !important;
+        border: 1px solid var(--border-hairline) !important;
         border-radius: 12px !important;
-        padding: 16px 18px !important;
+        padding: 16px 20px !important;
         margin-bottom: 12px !important;
     }
 
-    /* Secondary / Prompt Buttons — Sleek Zinc Glass */
+    /* Secondary Buttons */
     .stButton > button {
         background: var(--bg-surface) !important;
-        color: #e4e4e7 !important;
+        color: var(--text-primary) !important;
         font-weight: 500 !important;
-        font-size: 0.84rem !important;
-        border: 1px solid var(--border-subtle) !important;
-        border-radius: 9px !important;
-        padding: 8px 14px !important;
+        font-size: 13px !important;
+        border: 1px solid var(--border-hairline) !important;
+        border-radius: 8px !important;
+        padding: 8px 16px !important;
         box-shadow: none !important;
-        transition: all 0.18s ease !important;
+        transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out), transform 120ms var(--ease-out) !important;
     }
     .stButton > button:hover {
-        background: var(--bg-surface-hover) !important;
+        background: var(--bg-raised) !important;
         border-color: var(--border-hover) !important;
-        color: #ffffff !important;
-        transform: translateY(-1px) !important;
+        color: var(--text-primary) !important;
     }
     .stButton > button:active {
-        transform: translateY(0px) !important;
+        transform: scale(0.98) !important;
     }
 
-    /* Primary CTA Button (Only for main action) */
+    /* Primary CTA Button — Off-white on dark ramp */
     .stButton > button[kind="primary"] {
-        background: #4f46e5 !important;
-        color: #ffffff !important;
-        font-weight: 600 !important;
-        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        background: var(--text-primary) !important;
+        color: var(--bg-canvas) !important;
+        font-weight: 500 !important;
+        border: 1px solid transparent !important;
     }
     .stButton > button[kind="primary"]:hover {
-        background: #4338ca !important;
-        border-color: rgba(255, 255, 255, 0.24) !important;
+        background: #d4d4d8 !important;
+        color: var(--bg-canvas) !important;
     }
     </style>
     """,
@@ -453,18 +449,17 @@ if "messages" not in st.session_state:
         {
             "role": "assistant",
             "content": (
-                "### ⚡ CogentSearch Autonomous Agent Online\n"
-                "I am **CogentSearch**, an enterprise-grade **Multimodal Agentic Document Search & Reasoning Engine**. "
-                "I parse, index, and reason across heterogeneous corporate data streams — including multi-page PDFs, complex financial tables, trend charts, slide presentations (`.pptx`), structured reports (`.docx`), and **Whisper / ASR audio meeting transcripts (`.json`, `.txt`)** — providing strict line-of-sight page/timestamp citations and cropped visual evidence.\n\n"
-                "#### 🤖 Agentic Capabilities:\n"
-                "- **Autonomous LangGraph State Machine:** Self-correcting loop (`Query Rewrite` ➔ `Hybrid Retrieve` ➔ `Grade Evidence` ➔ `Synthesize Cited Answer`).\n"
-                "- **Dual-Engine Hybrid Retrieval:** High-dimensional semantic search (**Qdrant Cosine 1536d**) combined with lexical keyword matching (**BM25 Okapi**), fused via Reciprocal Rank Fusion (**RRF $k=60$**).\n"
-                "- **Deep Neural Reranking:** Precision reranking using a **MiniLM Cross-Encoder** attention mechanism to eliminate semantic distractors.\n"
-                "- **Multimodal Visual & Audio Provenance:** Automatic extraction of pixel-accurate bounding box crops for visual figures alongside exact timestamp and speaker citations for audio transcripts.\n\n"
-                "#### 🚀 Quick Start Guide:\n"
-                "1. Click **📂 Preload Enterprise Corpus** in the sidebar to benchmark across enterprise financial statements, architecture charts, slides, and executive audio transcripts.\n"
-                "2. Or drag-and-drop your custom `.pdf`, `.docx`, `.pptx`, `.txt`, or `.json` documents into the uploader.\n"
-                "3. Select one of the verification prompt pills above or type any analytical question below."
+                "**CogentSearch** indexes PDFs, financial tables, charts, slide decks (`.pptx`), Word reports (`.docx`), "
+                "and Whisper audio transcripts (`.json`, `.txt`), returning answers with page-level citations and cropped visual evidence.\n\n"
+                "**Pipeline**\n"
+                "- **LangGraph loop:** Query rewrite, hybrid retrieval, evidence grading, and cited synthesis\n"
+                "- **Hybrid search:** Qdrant dense vectors (1536d) + BM25 Okapi fused via RRF ($k=60$)\n"
+                "- **Cross-encoder reranking:** MiniLM passage scoring before generation\n"
+                "- **Visual & audio provenance:** Bounding-box crops for tables/figures and timestamp citations for transcripts\n\n"
+                "**Get started**\n"
+                "1. Select **Preload Enterprise Corpus** in the sidebar to index the sample financial, chart, slide, and transcript files\n"
+                "2. Or upload `.pdf`, `.docx`, `.pptx`, `.txt`, or `.json` files in the sidebar\n"
+                "3. Choose a sample query above or ask a question below"
             ),
             "citations": [],
             "image_crops": [],
@@ -521,11 +516,17 @@ except Exception as e:
 with st.sidebar:
     st.markdown(
         """
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-            <div style="background: #4f46e5; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 1rem;">⚡</div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+            <div style="background: #19191b; border: 1px solid rgba(237, 237, 237, 0.12); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="5" height="5" rx="1" stroke="#ededed" stroke-width="1.4"/>
+                    <rect x="9" y="2" width="5" height="5" rx="1" stroke="#a1a1aa" stroke-width="1.4"/>
+                    <rect x="2" y="9" width="12" height="5" rx="1" stroke="#ededed" stroke-width="1.4"/>
+                </svg>
+            </div>
             <div>
-                <div style="font-size: 1.08rem; font-weight: 700; color: #fafafa; line-height: 1.2;">CogentSearch</div>
-                <div style="font-size: 0.66rem; color: #818cf8; font-weight: 600; letter-spacing: 0.08em; font-family: 'JetBrains Mono', monospace;">MULTIMODAL RAG</div>
+                <div style="font-size: 16px; font-weight: 600; color: #ededed; line-height: 1.2;">CogentSearch</div>
+                <div style="font-size: 12px; color: #85858b; font-family: 'IBM Plex Mono', monospace;">Multimodal retrieval</div>
             </div>
         </div>
         """,
@@ -535,10 +536,10 @@ with st.sidebar:
 
     st.markdown("##### Ingestion")
     uploaded_files = st.file_uploader(
-        "Upload Documents & Transcripts",
+        "Upload documents & transcripts",
         type=["pdf", "docx", "pptx", "txt", "json"],
         accept_multiple_files=True,
-        help="Upload multi-page PDFs, Word documents (.docx), slide decks (.pptx), or audio transcripts (.txt, .json).",
+        help="Upload multi-page PDFs, Word documents (.docx), slide decks (.pptx), or audio transcripts (.txt, .json)",
         label_visibility="collapsed",
     )
 
@@ -549,9 +550,9 @@ with st.sidebar:
                 with open(dest_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
 
-                progress_bar = st.progress(0, text=f"Ingesting '{uploaded_file.name}'...")
+                progress_bar = st.progress(0, text=f"Indexing {uploaded_file.name}")
                 time.sleep(0.15)
-                progress_bar.progress(30, text="Phase 1: Parsing multimodal structure & tables...")
+                progress_bar.progress(30, text="Parsing structure and tables")
 
                 if BACKEND_AVAILABLE:
                     pipeline = MultimodalIngestionPipeline()
@@ -559,15 +560,15 @@ with st.sidebar:
                     doc, chunks = ingest_document_file(
                         dest_path, pipeline, splitter, st.session_state.hybrid_retriever
                     )
-                    progress_bar.progress(75, text="Phase 2: Indexing vectors in Qdrant & BM25...")
+                    progress_bar.progress(75, text="Indexing Qdrant and BM25")
                     time.sleep(0.15)
                     st.session_state.total_chunks += len(chunks)
                 else:
                     time.sleep(0.3)
-                    progress_bar.progress(75, text="Phase 2: Indexing vectors...")
+                    progress_bar.progress(75, text="Indexing vectors")
                     st.session_state.total_chunks += 8
 
-                progress_bar.progress(100, text=f"✅ '{uploaded_file.name}' indexed successfully!")
+                progress_bar.progress(100, text=f"Indexed {uploaded_file.name}")
                 st.session_state.indexed_files.add(uploaded_file.name)
                 time.sleep(0.4)
                 progress_bar.empty()
@@ -583,7 +584,7 @@ with st.sidebar:
         ]
         available = [f for f in sample_files if f.exists()]
         if available:
-            prog = st.progress(0, text="Indexing enterprise financial & technical corpus...")
+            prog = st.progress(0, text="Indexing enterprise corpus")
             for idx, sf in enumerate(available):
                 if sf.name not in st.session_state.indexed_files:
                     if BACKEND_AVAILABLE:
@@ -598,7 +599,7 @@ with st.sidebar:
                     st.session_state.indexed_files.add(sf.name)
                 prog.progress(int((idx + 1) / len(available) * 100))
             prog.empty()
-            st.success(f"Indexed {len(available)} enterprise documents!")
+            st.success(f"Indexed {len(available)} enterprise documents")
             st.rerun()
 
     st.divider()
@@ -613,7 +614,7 @@ with st.sidebar:
                 cogent_settings.GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
         except Exception:
             pass
-    cache_backend = st.session_state.query_cache.backend.upper() if "query_cache" in st.session_state else "MEMORY"
+    cache_backend = st.session_state.query_cache.backend.lower() if "query_cache" in st.session_state else "memory"
     cache_hits = st.session_state.query_cache.hits if "query_cache" in st.session_state else 0
     llm_mode = "Groq GPT-OSS-120B" if getattr(cogent_settings, "GROQ_API_KEY", "") else ("OpenAI GPT-4o" if cogent_settings.OPENAI_API_KEY else "Offline Mode")
     st.markdown(
@@ -629,21 +630,21 @@ with st.sidebar:
             </div>
         </div>
         <div class="cache-pill">
-            <span>Cache: {cache_backend}</span>
-            <span style="color: #10b981;">{cache_hits} hits</span>
+            <span>Cache · {cache_backend}</span>
+            <span style="color: #4cc38a;">{cache_hits} hits</span>
         </div>
         <div class="cache-pill">
             <span>Engine</span>
-            <span style="color: #a5b4fc;">{llm_mode}</span>
+            <span style="color: #ededed;">{llm_mode}</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     if st.session_state.indexed_files:
-        st.caption("**Indexed Files:**")
+        st.caption("Indexed files")
         files_html = "".join(
-            f"<div style='color: #a1a1aa; font-family: JetBrains Mono, monospace; font-size: 0.74rem; padding: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>• {fn}</div>"
+            f"<div style='color: #a1a1a6; font-family: IBM Plex Mono, monospace; font-size: 12px; padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>{fn}</div>"
             for fn in sorted(st.session_state.indexed_files)
         )
         st.markdown(files_html, unsafe_allow_html=True)
@@ -655,18 +656,20 @@ with st.sidebar:
 
 
 # ------------------------------------------------------------------------------
-# 3. MINIMALIST HERO HEADER
+# 3. ARCHIVAL HEADER
 # ------------------------------------------------------------------------------
 st.markdown(
-    """
+    f"""
     <div class="hero-minimal">
-        <div class="hero-eyebrow">
-            <span class="hero-eyebrow-dot"></span>
-            Hybrid Qdrant + BM25 · LangGraph Self-Correction · Zero-Key Offline
+        <div class="hero-top-row">
+            <h1 class="hero-title">CogentSearch</h1>
+            <div class="hero-meta">
+                <span class="live-dot"></span>
+                <span>{llm_mode} · Qdrant + BM25 · LangGraph</span>
+            </div>
         </div>
-        <h1 class="hero-title">CogentSearch</h1>
         <div class="hero-subtitle">
-            Multimodal document intelligence across PDFs, tables, charts, decks, and Whisper transcripts with line-of-sight visual citations.
+            Multimodal document search across PDFs, tables, charts, slide decks, and Whisper transcripts with page-level visual citations
         </div>
     </div>
     """,
@@ -674,23 +677,23 @@ st.markdown(
 )
 
 # ------------------------------------------------------------------------------
-# 4. RESPONSIVE 6-STAGE PIPELINE ARCHITECTURE FLOW (NO CLIPPING)
+# 4. 6-STAGE PIPELINE ARCHITECTURE
 # ------------------------------------------------------------------------------
-with st.expander("Architecture Pipeline (6-Stage Hybrid & Agentic Flow)", expanded=True):
+with st.expander("Pipeline architecture (6 stages)", expanded=False):
     main_pipe_html = (
         '<div class="h-pipeline-grid">'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">01 / INGEST</div><div class="h-pipe-title">Parse & Crop</div><div class="h-pipe-desc">Docling, PyMuPDF & ASR</div></div>'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">02 / RETRIEVE</div><div class="h-pipe-title">Hybrid Search</div><div class="h-pipe-desc">Qdrant 1536d + BM25</div></div>'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">03 / FUSE</div><div class="h-pipe-title">Rank Fusion</div><div class="h-pipe-desc">RRF (k=60)</div></div>'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">04 / RERANK</div><div class="h-pipe-title">Cross-Encoder</div><div class="h-pipe-desc">MiniLM-L-6-v2 Attention</div></div>'
-        '<div class="h-pipe-card"><div class="h-pipe-step-num">05 / VERIFY</div><div class="h-pipe-title">LangGraph Loop</div><div class="h-pipe-desc">Rewrite & Evidence Grade</div></div>'
-        '<div class="h-pipe-card" style="border-color: rgba(16, 185, 129, 0.35);"><div class="h-pipe-step-num" style="color: #34d399;">06 / CITE</div><div class="h-pipe-title">Visual Proof</div><div class="h-pipe-desc">BBox Crops & Citations</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">01 Ingest</div><div class="h-pipe-title">Parse & Crop</div><div class="h-pipe-desc">Docling, PyMuPDF, ASR</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">02 Retrieve</div><div class="h-pipe-title">Hybrid Search</div><div class="h-pipe-desc">Qdrant 1536d + BM25</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">03 Fuse</div><div class="h-pipe-title">Rank Fusion</div><div class="h-pipe-desc">RRF (k=60)</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">04 Rerank</div><div class="h-pipe-title">Cross-Encoder</div><div class="h-pipe-desc">MiniLM-L-6-v2</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">05 Verify</div><div class="h-pipe-title">LangGraph Loop</div><div class="h-pipe-desc">Rewrite & grade</div></div>'
+        '<div class="h-pipe-card"><div class="h-pipe-step-num">06 Cite</div><div class="h-pipe-title">Visual Proof</div><div class="h-pipe-desc">Bounding-box crops</div></div>'
         '</div>'
     )
     st.markdown(main_pipe_html, unsafe_allow_html=True)
 
 # Suggested Query Quick Pills
-st.caption("Try a sample query:")
+st.caption("Sample queries")
 q_col1, q_col2, q_col3, q_col4 = st.columns(4)
 sample_query = None
 with q_col1:
@@ -714,12 +717,12 @@ for msg in st.session_state.messages:
         # Display text citations
         if msg.get("citations"):
             st.markdown("---")
-            st.caption("📌 **Verified Sources & Citations:**")
+            st.caption("Verified sources")
             badges_html = ""
             for cit in msg["citations"]:
                 mod = cit.get("modality_type", "text").lower()
                 cls = "cite-badge-table" if "table" in mod else ("cite-badge-image" if "image" in mod else ("cite-badge-audio" if "audio" in mod or "transcript" in mod else "cite-badge"))
-                badges_html += f'<span class="cite-badge {cls}">[{cit.get("source_file")}, p.{cit.get("page_number")}, {mod.upper()}]</span> '
+                badges_html += f'<span class="cite-badge {cls}"><span class="cite-dot"></span>{cit.get("source_file")} · p.{cit.get("page_number")} · {mod}</span> '
             st.markdown(badges_html, unsafe_allow_html=True)
 
         # Display cropped multimodal tables & chart images
@@ -728,13 +731,13 @@ for msg in st.session_state.messages:
                 st.markdown('<div class="crop-frame">', unsafe_allow_html=True)
                 st.image(
                     crop["bytes"],
-                    caption=f"📷 Cropped {crop.get('modality', 'Element').title()} Bounding Box — {crop.get('source')} (Page {crop.get('page')})",
+                    caption=f"{crop.get('modality', 'Element').title()} bounding box — {crop.get('source')} (p.{crop.get('page')})",
                     use_container_width=True,
                 )
                 st.markdown('</div>', unsafe_allow_html=True)
 
 # User Chat Input
-user_input = st.chat_input("Ask a question about your documents, financial tables, or architecture charts...")
+user_input = st.chat_input("Ask about documents, tables, charts, or transcripts")
 active_prompt = sample_query or user_input
 
 if active_prompt:
@@ -753,18 +756,18 @@ if active_prompt:
         cache_entry = st.session_state.query_cache.get(active_prompt) if ("query_cache" in st.session_state and st.session_state.query_cache.enabled) else None
 
         if cache_entry:
-            backend_label = st.session_state.query_cache.backend.upper()
-            with st.status(f"⚡ Sub-Millisecond Cache Hit ({backend_label}) — Retrieved in 0.8ms", expanded=False) as status:
-                st.write(f"⚡ **Query Cache Hit ({backend_label})**")
-                st.caption(f"Retrieved pre-computed reasoning, citations, and visual bounding boxes from cache in ~0.8ms (saved ~450ms vector search & LLM inference).")
-                status.update(label=f"⚡ Pre-computed Response Loaded ({backend_label})", state="complete")
+            backend_label = st.session_state.query_cache.backend.lower()
+            with st.status(f"Cache hit ({backend_label}) — 0.8ms", expanded=False) as status:
+                st.write(f"**Query cache hit ({backend_label})**")
+                st.caption("Retrieved pre-computed reasoning, citations, and bounding boxes from cache")
+                status.update(label=f"Loaded from {backend_label} cache", state="complete")
             answer_text = cache_entry.get("generation", "")
             citations = cache_entry.get("citations", [])
         else:
-            with st.status("⚡ CogentSearch Agent Reasoning...", expanded=True) as status:
+            with st.status("Running retrieval and verification", expanded=True) as status:
                 # Auto-index enterprise corpus if user queries before uploading/preloading
                 if len(st.session_state.indexed_files) == 0:
-                    st.write("📂 **Auto-loading Enterprise Corpus (0 docs indexed yet)...**")
+                    st.write("**Auto-loading enterprise corpus**")
                     sample_files = [
                         CORPUS_DIR / "doc_02_multipage_table.pdf",
                         CORPUS_DIR / "doc_04_charts_diagrams.pdf",
@@ -786,28 +789,28 @@ if active_prompt:
                             st.session_state.indexed_files.add(sf.name)
 
                 # Step 1: Query Rewriter
-                st.write("🔍 **Rewriting Query (gpt-4o-mini)...**")
-                st.caption(f"Optimizing query: *'{active_prompt}'* for dense embeddings & lexical keyword expansion.")
-                time.sleep(0.35)
+                st.write("**1. Query rewriter**")
+                st.caption(f"Optimizing '{active_prompt}' for dense and lexical search")
+                time.sleep(0.25)
 
                 # Step 2: Vector DB Hybrid Retrieval
-                st.write("⚡ **Searching Hybrid Vector DB (Qdrant Dense + BM25)...**")
-                st.caption("Fusing dense vector rankings with BM25 Okapi scores via Reciprocal Rank Fusion ($k=60$).")
-                time.sleep(0.35)
+                st.write("**2. Hybrid retrieval (Qdrant + BM25)**")
+                st.caption("Fusing dense vector rankings with BM25 scores via RRF (k=60)")
+                time.sleep(0.25)
 
                 # Step 3: Neural Cross-Encoder
-                st.write("🎯 **Cross-Encoder Neural Reranking (ms-marco-MiniLM-L-6-v2)...**")
-                st.caption("Computing fine-grained passage attention scores to filter top context chunks.")
-                time.sleep(0.35)
+                st.write("**3. Cross-encoder reranking**")
+                st.caption("Scoring passage attention with ms-marco-MiniLM-L-6-v2")
+                time.sleep(0.25)
 
                 # Step 4: Document Grader (Self-Correction)
-                st.write("⚖️ **Grading Retrieved Context (Self-Correction & Hallucination Guard)...**")
-                st.caption("Checking factual sufficiency and logical polarity. Triggering rewriter/web-fallback if insufficient.")
-                time.sleep(0.35)
+                st.write("**4. Evidence grading**")
+                st.caption("Checking factual sufficiency and negation polarity")
+                time.sleep(0.25)
 
                 # Step 5: Answer Generation
-                st.write("📝 **Generating Verified Response with Pydantic Citation Schemas...**")
-                time.sleep(0.3)
+                st.write("**5. Cited synthesis**")
+                time.sleep(0.2)
 
                 # Execute actual LangGraph loop if available, else deterministic response
                 if BACKEND_AVAILABLE:
@@ -852,7 +855,7 @@ if active_prompt:
                         {"generation": answer_text, "citations": citations},
                     )
 
-                status.update(label="✅ Agent Reasoning Complete — Answer Synthesized!", state="complete", expanded=False)
+                status.update(label="Answer synthesized", state="complete", expanded=False)
 
         # 6. MULTIMODAL CITATIONS DISPLAY
         st.markdown(answer_text)
@@ -860,12 +863,12 @@ if active_prompt:
         # Render citations
         if citations:
             st.markdown("---")
-            st.caption("📌 **Verified Sources & Citations:**")
+            st.caption("Verified sources")
             badges_html = ""
             for cit in citations:
                 mod = cit.get("modality_type", "text").lower()
                 cls = "cite-badge-table" if "table" in mod else ("cite-badge-image" if "image" in mod else ("cite-badge-audio" if "audio" in mod or "transcript" in mod else "cite-badge"))
-                badges_html += f'<span class="cite-badge {cls}">[{cit.get("source_file")}, p.{cit.get("page_number")}, {mod.upper()}]</span> '
+                badges_html += f'<span class="cite-badge {cls}"><span class="cite-dot"></span>{cit.get("source_file")} · p.{cit.get("page_number")} · {mod}</span> '
 
                 # Check if visual element needs high-res crop
                 if mod in ["table", "image", "figure"]:
@@ -891,7 +894,7 @@ if active_prompt:
                 st.markdown('<div class="crop-frame">', unsafe_allow_html=True)
                 st.image(
                     crop["bytes"],
-                    caption=f"📷 Cropped {crop['modality'].title()} Bounding Box — {crop['source']} (Page {crop['page']})",
+                    caption=f"{crop['modality'].title()} bounding box — {crop['source']} (p.{crop['page']})",
                     use_container_width=True,
                 )
                 st.markdown('</div>', unsafe_allow_html=True)
