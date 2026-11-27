@@ -488,6 +488,11 @@ class AgentNodes:
                 # For OpenAI-native: use Pydantic structured outputs via function calling
                 if _is_groq:
                     logger.info("Groq LPU detected — using plain text generation with citation extraction.")
+                    messages[-1] = HumanMessage(
+                        content=messages[-1].content
+                        + "\n\nIMPORTANT: Append inline citations using this exact syntax after each claim: "
+                        "[Source: <exact_filename>, Page <number>, Type: <Text|Table|Image>]"
+                    )
                     answer = gen_llm.invoke(messages).content.strip()
                     citations = self._extract_citations(answer, documents, web_docs)
                 elif hasattr(gen_llm, "with_structured_output"):
@@ -629,7 +634,7 @@ class AgentNodes:
         Extracts and strictly verifies all citations adhering to [Source: File, Page X, Type: Y].
         Rejects hallucinated or fabricated citations that do not exist in retrieved evidence.
         """
-        pattern = r"\[Source:\s*([^,]+),\s*Page\s*(\d+),\s*Type:\s*([^\]]+)\]"
+        pattern = r"[\[【]Source:\s*([^,]+),\s*Page:?\s*(\d+),\s*Type:\s*([^\]】]+)[\]】]"
         matches = re.finditer(pattern, text)
 
         # Build lookup tables for valid sources

@@ -793,16 +793,16 @@ q_col1, q_col2, q_col3, q_col4 = st.columns(4)
 sample_query = None
 with q_col1:
     if st.button("Financial Tables", use_container_width=True):
-        sample_query = "What are the financial metrics and revenue figures in the quarterly report table?"
+        sample_query = "What are the transactions, amounts, and settlement statuses in the Financial Ledger 2026?"
 with q_col2:
     if st.button("Benchmark Charts", use_container_width=True):
-        sample_query = "What are the latency benchmarks and system throughput metrics shown in the chart?"
+        sample_query = "What figures and visual dashboards are shown in the Operational Analytics Dashboard?"
 with q_col3:
     if st.button("Audio Transcript", use_container_width=True):
         sample_query = "What were the key financial metrics, ARR growth, and margin improvements discussed in the executive earnings call transcript?"
 with q_col4:
-    if st.button("Architecture & Clusters", use_container_width=True):
-        sample_query = "Explain the system architecture specifications and cluster configurations."
+    if st.button("Clusters & Audit", use_container_width=True):
+        sample_query = "What does the Cloud Infrastructure Audit Report say about compute resource utilization, CPU, and memory allocations?"
 
 # Initial Workbench Ledger (shown before first user query)
 if len(st.session_state.messages) == 1:
